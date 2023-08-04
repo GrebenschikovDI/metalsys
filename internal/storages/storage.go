@@ -1,42 +1,38 @@
-package controllers
+package storages
 
 import (
 	"fmt"
 	"strings"
 )
 
-type Gauge float64
-
-type Counter int64
-
 // MetricStorage - интерфейс для хранения метрик
 type MetricStorage interface {
-	AddGauge(name string, value Gauge)
-	AddCounter(name string, value Counter)
+	AddGauge(name string, value float64)
+	AddCounter(name string, value int64)
 	ToString() string
 }
 
 // MemStorage - реализация MetricStorage на основе map
 type MemStorage struct {
-	gauges   map[string]Gauge
-	counters map[string]Counter
+	gauges   map[string]float64
+	counters map[string]int64
 }
 
 // NewMemStorage - создает новое хранлище метрик
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
-		gauges:   make(map[string]Gauge),
-		counters: make(map[string]Counter),
+		gauges:   make(map[string]float64),
+		counters: make(map[string]int64),
 	}
 }
 
 // AddGauge - добавляет значение типа gauge
-func (m *MemStorage) AddGauge(name string, value Gauge) {
+func (m *MemStorage) AddGauge(name string, value float64) {
 	m.gauges[name] = value
 }
 
 // AddCounter - добавляет значение типа counter
-func (m *MemStorage) AddCounter(name string, value Counter) {
+func (m *MemStorage) AddCounter(name string, value int64) {
 	current, ok := m.counters[name]
 	if !ok {
 		m.counters[name] = value

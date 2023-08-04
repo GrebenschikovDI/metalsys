@@ -40,7 +40,7 @@ func handleMetric(storage controllers.MetricStorage) http.HandlerFunc {
 			metricName = matches[2]
 			metricValueStr = matches[3]
 		} else {
-			http.Error(writer, "Not Fond", http.StatusNotFound)
+			http.Error(writer, "Bad Request", http.StatusBadRequest)
 			return
 		}
 		if metricName == "" {

@@ -42,6 +42,7 @@ func (m *MemStorage) AddCounter(name string, value int64) {
 	}
 }
 
+// GetMetrics - возращает массив строк, строки в виде /тип/имя/значение
 func (m *MemStorage) GetMetrics() []string {
 	var results []string
 	for name, value := range m.gauges {

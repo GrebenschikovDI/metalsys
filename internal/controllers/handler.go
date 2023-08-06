@@ -36,13 +36,14 @@ func MetricHandler(storage MetricStorage) http.HandlerFunc {
 			return
 		}
 
-		routePattern := regexp.MustCompile(`/update/(?P<type>\w+)/(?P<name>\w+)/(?P<value>\w+)`)
+		routePattern := regexp.MustCompile(`/update/(?P<type>\w+)/(?P<name>\w+)/(?P<value>[-+]?\d*\.\d+|\d+)`)
 		matches := routePattern.FindStringSubmatch(request.URL.Path)
 
 		if len(matches) == 4 {
 			metricType = matches[1]
 			metricName = matches[2]
 			metricValueStr = matches[3]
+			fmt.Println(metricValueStr)
 		} else {
 			http.Error(writer, "Not Found", http.StatusNotFound)
 			return
@@ -71,5 +72,6 @@ func MetricHandler(storage MetricStorage) http.HandlerFunc {
 			return
 		}
 		sendResponse(writer, http.StatusOK, storage.ToString())
+		fmt.Println(storage.ToString())
 	}
 }

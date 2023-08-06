@@ -9,6 +9,7 @@ import (
 type MetricStorage interface {
 	AddGauge(name string, value float64)
 	AddCounter(name string, value int64)
+	GetMetrics() []string
 	ToString() string
 }
 
@@ -39,6 +40,17 @@ func (m *MemStorage) AddCounter(name string, value int64) {
 	} else {
 		m.counters[name] = current + value
 	}
+}
+
+func (m *MemStorage) GetMetrics() []string {
+	var results []string
+	for name, value := range m.gauges {
+		results = append(results, fmt.Sprintf("/gauge/%s/%f", name, value))
+	}
+	for name, value := range m.counters {
+		results = append(results, fmt.Sprintf("/counter/%s/%d", name, value))
+	}
+	return results
 }
 
 // ToString - возвращает содержимое storage как строку

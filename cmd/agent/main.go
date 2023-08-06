@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
+	"math/rand"
+	"net/http"
 	"reflect"
 	"runtime"
+	"time"
 )
 
 // server - куда будет отправлен запрос
@@ -39,24 +43,39 @@ var metricNames = []string{
 	"TotalAlloc",
 }
 
-// MetricData - тип данных для сбора и отправки
-type MetricData struct {
-	Name  string
-	Type  string
-	Value float64
+type MetricStorage interface {
+	AddGauge(name string, value float64)
+	AddCounter(name string, value int64)
+	GetMetrics() []string
+	ToString() string
 }
 
 func main() {
+	pollInterval := 2 * time.Second
+	storage := storages.NewMemStorage()
 
-	collectMetrics()
+	go func() {
+		for {
+			updateMetrics(metricNames, storage)
+			time.Sleep(pollInterval)
+		}
+	}()
+
+	go func() {
+		for {
+			senMetrics(storage)
+			time.Sleep(10 * time.Second)
+		}
+	}()
+
+	select {}
 }
 
 // сбор метрик
-
-func collectMetrics() []*MetricData {
+func getRuntimeMetrics(metricNames []string, storage MetricStorage) {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	var metrics []*MetricData
+
 	for _, field := range metricNames {
 		value := reflect.ValueOf(memStats).FieldByName(field)
 		var metricValue float64
@@ -72,17 +91,50 @@ func collectMetrics() []*MetricData {
 			fmt.Printf("Неправильный тип метрики %s\n", field)
 			continue
 		}
-
-		metric := &MetricData{
-			Name:  field,
-			Type:  "gauge",
-			Value: metricValue,
-		}
-		fmt.Printf("Name: %s, Type: %s, Value: %f\n", metric.Name, metric.Type, metric.Value)
-		metrics = append(metrics, metric)
+		storage.AddGauge(field, metricValue)
 	}
-	return metrics
 }
 
-// подготовка метрик
-// отправка метрик
+func getPollCount(storage MetricStorage) {
+	field := "PollCount"
+	storage.AddCounter(field, 1)
+}
+
+func getRandomValue(storage MetricStorage) {
+	randomFloat := rand.Float64()
+	field := "RandomValue"
+	storage.AddGauge(field, randomFloat)
+}
+
+func updateMetrics(metricNames []string, storage MetricStorage) {
+	getRuntimeMetrics(metricNames, storage)
+	getPollCount(storage)
+	getRandomValue(storage)
+	fmt.Printf(storage.ToString())
+}
+
+func senMetrics(storage MetricStorage) {
+	metrics := storage.GetMetrics()
+	for _, metric := range metrics {
+		url := fmt.Sprintf("%supdate%s", server, metric)
+		//fmt.Println(url)
+		request, err := http.NewRequest(http.MethodPost, url, nil)
+		if err != nil {
+			fmt.Println("Ошибка при создании запроса", err)
+			return
+		}
+		request.Header.Set("Content-Type", "text/plain")
+		client := &http.Client{Timeout: 5 * time.Second}
+		response, err := client.Do(request)
+		if err != nil {
+			fmt.Println("Ошибка при отправке запроса:", err)
+			return
+		}
+		if response.StatusCode != http.StatusOK {
+			fmt.Println("Неожиданный ответ:", response.StatusCode)
+			return
+		}
+		response.Body.Close()
+	}
+
+}

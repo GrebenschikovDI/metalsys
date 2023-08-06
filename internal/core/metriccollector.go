@@ -52,5 +52,4 @@ func UpdateMetrics(metricNames []string, storage MetricStorage) {
 	getRuntimeMetrics(metricNames, storage)
 	getPollCount(storage)
 	getRandomValue(storage)
-	fmt.Printf(storage.ToString())
 }

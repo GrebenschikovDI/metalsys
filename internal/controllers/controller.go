@@ -11,6 +11,7 @@ import (
 type MetricStorage interface {
 	AddGauge(name string, value float64)
 	AddCounter(name string, value int64)
+	GetMetrics() []string
 	ToString() string
 }
 
@@ -73,5 +74,29 @@ func MetricHandler(storage MetricStorage) http.HandlerFunc {
 		}
 		sendResponse(writer, http.StatusOK, storage.ToString())
 		fmt.Println(storage.ToString())
+	}
+}
+
+func MetricSender(storage MetricStorage, server string) {
+	metrics := storage.GetMetrics()
+	for _, metric := range metrics {
+		url := fmt.Sprintf("%supdate%s", server, metric)
+		request, err := http.NewRequest(http.MethodPost, url, nil)
+		if err != nil {
+			fmt.Println("Ошибка при создании запроса", err)
+			return
+		}
+		request.Header.Set("Content-Type", "text/plain")
+		client := &http.Client{Timeout: 5 * time.Second}
+		response, err := client.Do(request)
+		if err != nil {
+			fmt.Println("Ошибка при отправке запроса:", err)
+			return
+		}
+		if response.StatusCode != http.StatusOK {
+			fmt.Println("Неожиданный ответ:", response.StatusCode)
+			return
+		}
+		response.Body.Close()
 	}
 }

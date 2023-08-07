@@ -44,7 +44,7 @@ func main() {
 	parseFlags()
 	pollInterval := flagPollInt * time.Second
 	reportInterval := flagRepInt * time.Second
-	server := fmt.Sprintf("http://%s/", flagRunAddr)
+	server := fmt.Sprintf("%s/", flagSendAddr)
 	storage := storages.NewMemStorage()
 
 	go func() {

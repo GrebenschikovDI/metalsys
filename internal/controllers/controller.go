@@ -27,7 +27,7 @@ func MetricSender(storage MetricStorage, server string) {
 			return
 		}
 		request.Header.Set("Content-Type", "text/plain")
-		client := &http.Client{Timeout: 5 * time.Second}
+		client := &http.Client{Timeout: 10 * time.Second}
 		response, err := client.Do(request)
 		if err != nil {
 			fmt.Println("Ошибка при отправке запроса:", err)

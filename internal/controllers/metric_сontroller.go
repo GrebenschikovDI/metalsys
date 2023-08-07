@@ -62,7 +62,6 @@ func (c *MetricController) handleUpdate(writer http.ResponseWriter, request *htt
 		http.Error(writer, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	fmt.Println(c.storage.ToString())
 	sendResponse(writer, http.StatusOK, c.storage.ToString())
 }
 

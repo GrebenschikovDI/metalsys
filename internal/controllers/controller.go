@@ -7,13 +7,6 @@ import (
 	"time"
 )
 
-//type MetricStorage interface {
-//	AddGauge(name string, value float64)
-//	AddCounter(name string, value int64)
-//	GetMetrics() []string
-//	ToString() string
-//}
-
 // sendResponse - добавляет заголовки к ответу
 func sendResponse(w http.ResponseWriter, statusCode int, body string) {
 	w.WriteHeader(statusCode)

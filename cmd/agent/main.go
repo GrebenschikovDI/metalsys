@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/core"
 	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
@@ -46,6 +47,7 @@ func main() {
 	go func() {
 		for {
 			core.UpdateMetrics(metricNames, storage)
+			fmt.Println(storage.ToString())
 			time.Sleep(pollInterval)
 		}
 	}()

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
+	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 )
@@ -12,14 +13,14 @@ const serverPort = 8080
 
 func main() {
 	storage := storages.NewMemStorage()
-	handler := controllers.MetricHandler(storage)
-	port := fmt.Sprintf(":%d", serverPort)
-	mux := http.NewServeMux()
+	contr := controllers.NewMetricController(storage)
+	r := chi.NewRouter()
+	r.Mount("/", contr.Route())
 
-	mux.HandleFunc("/update/", handler)
+	port := fmt.Sprintf(":%d", serverPort)
 
 	// Запуск сервера на порту 8080
-	err := http.ListenAndServe(port, mux)
+	err := http.ListenAndServe(port, r)
 	if err != nil {
 		log.Fatalf("Ошибка при запуске сервера: %v", err)
 	}

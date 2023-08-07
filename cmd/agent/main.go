@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/core"
 	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
 	"time"
 )
 
-const server = "http://localhost:8080/"
+//const server = "http://localhost:8080/"
 
 var metricNames = []string{
 	"Alloc",
@@ -40,7 +41,10 @@ var metricNames = []string{
 }
 
 func main() {
-	pollInterval := 2 * time.Second
+	parseFlags()
+	pollInterval := flagPollInt * time.Second
+	reportInterval := flagRepInt * time.Second
+	server := fmt.Sprintf("http://%s/", flagRunAddr)
 	storage := storages.NewMemStorage()
 
 	go func() {
@@ -54,7 +58,7 @@ func main() {
 	go func() {
 		for {
 			controllers.MetricSender(storage, server)
-			time.Sleep(10 * time.Second)
+			time.Sleep(reportInterval)
 		}
 	}()
 

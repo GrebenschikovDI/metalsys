@@ -2,6 +2,7 @@ package storages
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -11,6 +12,7 @@ type MetricStorage interface {
 	AddCounter(name string, value int64)
 	GetMetrics() []string
 	ToString() string
+	GetValue(metricType string, name string) (interface{}, error)
 }
 
 // MemStorage - реализация MetricStorage на основе map
@@ -52,6 +54,27 @@ func (m *MemStorage) GetMetrics() []string {
 		results = append(results, fmt.Sprintf("/counter/%s/%d", name, value))
 	}
 	return results
+}
+
+func (m *MemStorage) GetValue(metricType string, name string) (interface{}, error) {
+	var valueStr string
+	switch metricType {
+	case "gauge":
+		value, found := m.gauges[name]
+		if !found {
+			return nil, fmt.Errorf("%s with name '%s' not found", metricType, name)
+		}
+		valueStr = strconv.FormatFloat(value, 'f', -1, 64)
+	case "counter":
+		value, found := m.counters[name]
+		if !found {
+			return nil, fmt.Errorf("%s with name '%s' not found", metricType, name)
+		}
+		valueStr = strconv.FormatInt(value, 10)
+	default:
+		return nil, fmt.Errorf("%s with name '%s' not found", metricType, name)
+	}
+	return valueStr, nil
 }
 
 // ToString - возвращает содержимое storage как строку

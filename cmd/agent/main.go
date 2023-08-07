@@ -42,8 +42,18 @@ var metricNames = []string{
 
 func main() {
 	parseFlags()
-	pollInterval := flagPollInt * time.Second
-	reportInterval := flagRepInt * time.Second
+	pollInterval, err := time.ParseDuration(fmt.Sprintf("%ss", flagPollInt))
+	if err != nil {
+		fmt.Println("Ошибка при парсинге длительности:", err)
+		return
+	}
+	reportInterval, err := time.ParseDuration(fmt.Sprintf("%ss", flagRepInt))
+	if err != nil {
+		fmt.Println("Ошибка при парсинге длительности:", err)
+		return
+	}
+	//pollInterval := flagPollInt * time.Second
+	//reportInterval := flagRepInt * time.Second
 	server := fmt.Sprintf("http://%s/", flagSendAddr)
 	storage := storages.NewMemStorage()
 

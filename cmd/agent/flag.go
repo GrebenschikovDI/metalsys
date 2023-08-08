@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 )
 
 // неэкспортированная переменная flagRunAddr содержит адрес и порт для запуска сервера
@@ -19,4 +20,14 @@ func parseFlags() {
 	flag.StringVar(&flagPollInt, "p", "2", "interval to update metrics")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
+
+	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
+		flagSendAddr = envRunAddr
+	}
+	if envRepInt := os.Getenv("REPORT_INTERVAL"); envRepInt != "" {
+		flagRepInt = envRepInt
+	}
+	if envPollInt := os.Getenv("POLL_INTERVAL"); envPollInt != "" {
+		flagPollInt = envPollInt
+	}
 }

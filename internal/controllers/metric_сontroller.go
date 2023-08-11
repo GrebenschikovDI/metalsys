@@ -1,18 +1,24 @@
 package controllers
 
 import (
+	"context"
+	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"html/template"
 	"net/http"
 	"strconv"
 )
 
 type MetricStorage interface {
-	AddGauge(name string, value float64)
-	AddCounter(name string, value int64)
-	GetMetrics() []string
+	AddGauge(ctx context.Context, name string, value float64) error
+	AddCounter(ctx context.Context, name string, value int64) error
+	//GetMetrics() []string
+	GetGauges(_ context.Context) (map[string]float64, error)
+	GetCounters(_ context.Context) (map[string]int64, error)
+	GetGaugeByName(ctx context.Context, name string) (value float64, err error)
+	GetCounterByName(ctx context.Context, name string) (value int64, err error)
 	ToString() string
-	GetGauge(name string) (value float64, err error)
-	GetCounter(name string) (value int64, err error)
 }
 
 type MetricController struct {
@@ -27,6 +33,7 @@ func NewMetricController(storage MetricStorage) *MetricController {
 
 func (c *MetricController) Route() *chi.Mux {
 	r := chi.NewRouter()
+	r.Use(middleware.Recoverer)
 	r.Post("/update/{type}/{name}/{value}", c.handleUpdate)
 	r.Get("/", c.mainHandler)
 	r.Get("/value/{type}/{name}", c.valueHandler)
@@ -50,14 +57,14 @@ func (c *MetricController) handleUpdate(writer http.ResponseWriter, request *htt
 			http.Error(writer, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		c.storage.AddGauge(metricName, metricValue)
+		c.storage.AddGauge(request.Context(), metricName, metricValue)
 	case "counter":
 		metricValue, err := strconv.ParseInt(metricValueStr, 10, 64)
 		if err != nil {
 			http.Error(writer, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		c.storage.AddCounter(metricName, metricValue)
+		c.storage.AddCounter(request.Context(), metricName, metricValue)
 	default:
 		http.Error(writer, "Bad Request", http.StatusBadRequest)
 		return
@@ -71,14 +78,14 @@ func (c *MetricController) valueHandler(writer http.ResponseWriter, request *htt
 	var answer string
 	switch metricType {
 	case "gauge":
-		value, err := c.storage.GetGauge(metricName)
+		value, err := c.storage.GetGaugeByName(request.Context(), metricName)
 		if err != nil {
 			http.Error(writer, "Not Found", http.StatusNotFound)
 			return
 		}
 		answer = strconv.FormatFloat(value, 'f', -1, 64)
 	case "counter":
-		value, err := c.storage.GetCounter(metricName)
+		value, err := c.storage.GetCounterByName(request.Context(), metricName)
 		if err != nil {
 			http.Error(writer, "Not Found", http.StatusNotFound)
 			return
@@ -92,19 +99,48 @@ func (c *MetricController) valueHandler(writer http.ResponseWriter, request *htt
 }
 
 func (c *MetricController) mainHandler(writer http.ResponseWriter, request *http.Request) {
-	metricList := c.storage.GetMetrics()
-
-	// Генерировать HTML-страницу
-	html := "<html><head><title>Metric List</title></head><body><h1>Metric List</h1><ul>"
-	for _, metric := range metricList {
-		html += "<li>" + metric + "</li>"
+	gauges, err := c.storage.GetGauges(request.Context())
+	if err != nil {
+		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
-	html += "</ul></body></html>"
 
-	// Установить заголовки и отправить ответ
-	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	writer.WriteHeader(http.StatusOK)
-	_, err := writer.Write([]byte(html))
+	counters, err := c.storage.GetCounters(request.Context())
+	if err != nil {
+		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var metricList []string
+	for name, value := range gauges {
+		metricList = append(metricList, fmt.Sprintf("gauge/%s/%f", name, value))
+	}
+	for name, value := range counters {
+		metricList = append(metricList, fmt.Sprintf("counter/%s/%d", name, value))
+	}
+
+	t := `
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>Metric List</title>
+	</head>
+	<body>
+		<h1>Metric List</h1>
+		<ul>
+		{{range .}}
+			<li>{{.}}</li>
+		{{end}}
+		</ul>
+	</body>
+	</html>
+	`
+	tmpl, err := template.New("metricList").Parse(t)
+	if err != nil {
+		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.Execute(writer, metricList)
 	if err != nil {
 		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
 	}

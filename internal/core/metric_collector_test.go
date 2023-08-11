@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -10,14 +11,15 @@ type testStorage struct {
 	counters map[string]int64
 }
 
-func (ts *testStorage) AddGauge(name string, value float64) {
+func (ts *testStorage) AddGauge(_ context.Context, name string, value float64) error {
 	if ts.gauges == nil {
 		ts.gauges = make(map[string]float64)
 	}
 	ts.gauges[name] = value
+	return nil
 }
 
-func (ts *testStorage) AddCounter(name string, value int64) {
+func (ts *testStorage) AddCounter(_ context.Context, name string, value int64) error {
 	if ts.counters == nil {
 		ts.counters = make(map[string]int64)
 	}
@@ -27,7 +29,7 @@ func (ts *testStorage) AddCounter(name string, value int64) {
 	} else {
 		ts.counters[name] = current + value
 	}
-
+	return nil
 }
 
 func (ts *testStorage) GetMetrics() []string {

@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-//const server = "http://localhost:8080/"
-
 var metricNames = []string{
 	"Alloc",
 	"BuckHashSys",
@@ -52,15 +50,13 @@ func main() {
 		fmt.Println("Ошибка при парсинге длительности:", err)
 		return
 	}
-	//pollInterval := flagPollInt * time.Second
-	//reportInterval := flagRepInt * time.Second
+
 	server := fmt.Sprintf("http://%s/", flagSendAddr)
 	storage := storages.NewMemStorage()
 
 	go func() {
 		for {
 			core.UpdateMetrics(metricNames, storage)
-			//fmt.Println(storage.ToString())
 			time.Sleep(pollInterval)
 		}
 	}()

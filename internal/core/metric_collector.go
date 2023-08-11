@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -8,10 +9,8 @@ import (
 )
 
 type MetricStorage interface {
-	AddGauge(name string, value float64)
-	AddCounter(name string, value int64)
-	GetMetrics() []string
-	ToString() string
+	AddGauge(ctx context.Context, name string, value float64) error
+	AddCounter(ctx context.Context, name string, value int64) error
 }
 
 // getRuntimeMetrics - собирает метрики из пакета runtime, по списку имен
@@ -34,21 +33,30 @@ func getRuntimeMetrics(metricNames []string, storage MetricStorage) {
 			fmt.Printf("Неправильный тип метрики %s\n", field)
 			continue
 		}
-		storage.AddGauge(field, metricValue)
+		err := storage.AddGauge(context.TODO(), field, metricValue)
+		if err != nil {
+			return
+		}
 	}
 }
 
 // getPollCount - увеличивает PollCount на 1
 func getPollCount(storage MetricStorage) {
 	field := "PollCount"
-	storage.AddCounter(field, 1)
+	err := storage.AddCounter(context.TODO(), field, 1)
+	if err != nil {
+		return
+	}
 }
 
 // getRandomValue - добавляет случайное значение
 func getRandomValue(storage MetricStorage) {
 	randomFloat := rand.Float64()
 	field := "RandomValue"
-	storage.AddGauge(field, randomFloat)
+	err := storage.AddGauge(context.TODO(), field, randomFloat)
+	if err != nil {
+		return
+	}
 }
 
 // UpdateMetrics - обновляет метрики

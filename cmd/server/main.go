@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/GrebenschikovDI/metalsys.git/internal/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
 	"github.com/go-chi/chi/v5"
@@ -8,21 +9,29 @@ import (
 	"net/http"
 )
 
-const serverPort = 8080
-
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	parseFlags()
 	storage := storages.NewMemStorage()
 	contr := controllers.NewMetricController(storage)
-	r := chi.NewRouter()
-	r.Mount("/", contr.Route())
+	router := chi.NewRouter()
+	router.Mount("/", contr.Route())
 
-	//port := fmt.Sprintf(":%d", serverPort)
-	address := flagRunAddr
-	// Запуск сервера на порту 8080
-	err := http.ListenAndServe(address, r)
-	if err != nil {
+	server := &http.Server{
+		Addr:    flagRunAddr,
+		Handler: router,
+	}
+
+	log.Printf("Серевер запущен на http://%s\n", flagRunAddr)
+
+	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Ошибка при запуске сервера: %v", err)
 	}
-	log.Printf("Серевер запущен на http://%s\n", address)
+
+	return nil
 }

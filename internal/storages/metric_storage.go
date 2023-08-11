@@ -1,8 +1,8 @@
 package storages
 
 import (
+	"context"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -11,8 +11,9 @@ type MetricStorage interface {
 	AddGauge(name string, value float64)
 	AddCounter(name string, value int64)
 	GetMetrics() []string
+	GetGauge(name string) (value float64, err error)
+	GetCounter(ctx context.Context, name string) (value int64, err error)
 	ToString() string
-	GetValue(metricType string, name string) (interface{}, error)
 }
 
 // MemStorage - реализация MetricStorage на основе map
@@ -56,25 +57,20 @@ func (m *MemStorage) GetMetrics() []string {
 	return results
 }
 
-func (m *MemStorage) GetValue(metricType string, name string) (interface{}, error) {
-	var valueStr string
-	switch metricType {
-	case "gauge":
-		value, found := m.gauges[name]
-		if !found {
-			return nil, fmt.Errorf("%s with name '%s' not found", metricType, name)
-		}
-		valueStr = strconv.FormatFloat(value, 'f', -1, 64)
-	case "counter":
-		value, found := m.counters[name]
-		if !found {
-			return nil, fmt.Errorf("%s with name '%s' not found", metricType, name)
-		}
-		valueStr = strconv.FormatInt(value, 10)
-	default:
-		return nil, fmt.Errorf("%s with name '%s' not found", metricType, name)
+func (m *MemStorage) GetGauge(name string) (value float64, err error) {
+	value, found := m.gauges[name]
+	if !found {
+		err = fmt.Errorf("gauge with name '%s' not found", name)
 	}
-	return valueStr, nil
+	return value, err
+}
+
+func (m *MemStorage) GetCounter(name string) (value int64, err error) {
+	value, found := m.counters[name]
+	if !found {
+		err = fmt.Errorf("counter with name '%s' not found", name)
+	}
+	return value, err
 }
 
 // ToString - возвращает содержимое storage как строку

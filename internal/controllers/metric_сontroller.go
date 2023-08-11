@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
@@ -12,7 +11,8 @@ type MetricStorage interface {
 	AddCounter(name string, value int64)
 	GetMetrics() []string
 	ToString() string
-	GetValue(metricType string, name string) (interface{}, error)
+	GetGauge(name string) (value float64, err error)
+	GetCounter(name string) (value int64, err error)
 }
 
 type MetricController struct {
@@ -68,13 +68,27 @@ func (c *MetricController) handleUpdate(writer http.ResponseWriter, request *htt
 func (c *MetricController) valueHandler(writer http.ResponseWriter, request *http.Request) {
 	metricType := chi.URLParam(request, "type")
 	metricName := chi.URLParam(request, "name")
-	value, err := c.storage.GetValue(metricType, metricName)
-	if err != nil {
+	var answer string
+	switch metricType {
+	case "gauge":
+		value, err := c.storage.GetGauge(metricName)
+		if err != nil {
+			http.Error(writer, "Not Found", http.StatusNotFound)
+			return
+		}
+		answer = strconv.FormatFloat(value, 'f', -1, 64)
+	case "counter":
+		value, err := c.storage.GetCounter(metricName)
+		if err != nil {
+			http.Error(writer, "Not Found", http.StatusNotFound)
+			return
+		}
+		answer = strconv.FormatInt(value, 10)
+	default:
 		http.Error(writer, "Not Found", http.StatusNotFound)
 		return
 	}
-	strValue := fmt.Sprintf("%v", value)
-	sendResponse(writer, http.StatusOK, strValue)
+	sendResponse(writer, http.StatusOK, answer)
 }
 
 func (c *MetricController) mainHandler(writer http.ResponseWriter, request *http.Request) {

@@ -31,7 +31,7 @@ func MetricSender(storage MetricStorage, server string) {
 	}
 	client := &http.Client{Timeout: 10 * time.Second}
 	for name, value := range gauges {
-		url := fmt.Sprintf("%supdate/%s/%f", server, name, value)
+		url := fmt.Sprintf("%supdate/gauge/%s/%f", server, name, value)
 		request, err := http.NewRequest(http.MethodPost, url, nil)
 		if err != nil {
 			fmt.Println("Ошибка при создании запроса", err)
@@ -51,7 +51,7 @@ func MetricSender(storage MetricStorage, server string) {
 		response.Body.Close()
 	}
 	for name, value := range counters {
-		url := fmt.Sprintf("%supdate/%s/%d", server, name, value)
+		url := fmt.Sprintf("%supdate/counter/%s/%d", server, name, value)
 		request, err := http.NewRequest(http.MethodPost, url, nil)
 		if err != nil {
 			fmt.Println("Ошибка при создании запроса", err)

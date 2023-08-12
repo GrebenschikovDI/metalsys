@@ -119,27 +119,7 @@ func (c *MetricController) mainHandler(writer http.ResponseWriter, request *http
 		metricList = append(metricList, fmt.Sprintf("counter/%s/%d", name, value))
 	}
 
-	t := `
-	<!DOCTYPE html>
-	<html>
-	<head>
-		<title>Metric List</title>
-	</head>
-	<body>
-		<h1>Metric List</h1>
-		<ul>
-		{{range .}}
-			<li>{{.}}</li>
-		{{end}}
-		</ul>
-	</body>
-	</html>
-	`
-	tmpl, err := template.New("metricList").Parse(t)
-	if err != nil {
-		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
+	tmpl := template.Must(template.ParseFiles("internal/templates/metricList.html"))
 	err = tmpl.Execute(writer, metricList)
 	if err != nil {
 		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)

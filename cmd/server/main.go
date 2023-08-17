@@ -3,23 +3,28 @@ package main
 import (
 	"errors"
 	"github.com/GrebenschikovDI/metalsys.git/internal/controllers"
+	"github.com/GrebenschikovDI/metalsys.git/internal/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
 	"github.com/go-chi/chi/v5"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 )
 
 func main() {
+	parseFlags()
 	if err := run(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 }
 
 func run() error {
-	parseFlags()
+	if err := logger.Initialize("info"); err != nil {
+		return err
+	}
 	storage := storages.NewMemStorage()
 	contr := controllers.NewMetricController(storage)
 	router := chi.NewRouter()
+	router.Use(logger.RequestLogger)
 	router.Mount("/", contr.Route())
 
 	server := &http.Server{
@@ -27,10 +32,10 @@ func run() error {
 		Handler: router,
 	}
 
-	log.Printf("Серевер запущен на http://%s\n", flagRunAddr)
+	logger.Log.Info("Running server", zap.String("address", flagRunAddr))
 
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("Ошибка при запуске сервера: %v", err)
+		logger.Log.Fatal("Error within server init", zap.Error(err))
 	}
 
 	return nil

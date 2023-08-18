@@ -37,6 +37,8 @@ func (c *MetricController) Route() *chi.Mux {
 	r.Post("/update/{type}/{name}/{value}", c.handleUpdate)
 	r.Get("/", c.mainHandler)
 	r.Get("/value/{type}/{name}", c.valueHandler)
+	r.Post("/update/", c.jsonUpdateHandler)
+	r.Post("/value/", c.jsonValueHandler)
 	return r
 }
 
@@ -125,3 +127,6 @@ func (c *MetricController) mainHandler(writer http.ResponseWriter, request *http
 		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
+
+func (c *MetricController) jsonUpdateHandler(writer http.ResponseWriter, request *http.Request) {}
+func (c *MetricController) jsonValueHandler(writer http.ResponseWriter, request *http.Request)  {}

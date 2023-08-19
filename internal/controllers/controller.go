@@ -1,8 +1,11 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/models"
 	"net/http"
 	"strconv"
 	"time"
@@ -69,5 +72,34 @@ func MetricSender(storage MetricStorage, server string) {
 			return
 		}
 		response.Body.Close()
+	}
+}
+
+func JsonMetricUpdate(storage []models.Metrics, server string) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	url := fmt.Sprintf("%supdate/", server)
+	for _, metric := range storage {
+		requestData, err := json.Marshal(metric)
+		if err != nil {
+			fmt.Println("Ошибка при сериализации метрики в JSON:", err)
+			return
+		}
+		request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(requestData))
+		if err != nil {
+			fmt.Println("Ошибка при создании запроса", err)
+			return
+		}
+		request.Header.Set("Content-Type", "application/json")
+
+		response, err := client.Do(request)
+		if err != nil {
+			fmt.Println("Ошибка при отправке запроса:", err)
+			return
+		}
+		response.Body.Close()
+		if response.StatusCode != http.StatusOK {
+			fmt.Println("Неожиданный ответ:", response.StatusCode)
+			return
+		}
 	}
 }

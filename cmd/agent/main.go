@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/core"
-	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
 	"time"
 )
 
@@ -52,18 +51,20 @@ func main() {
 	}
 
 	server := fmt.Sprintf("http://%s/", flagSendAddr)
-	storage := storages.NewMemStorage()
+	//storage := storages.NewMemStorage()
 
 	go func() {
 		for {
-			core.UpdateMetrics(metricNames, storage)
+			//core.UpdateMetrics(metricNames, storage)
 			time.Sleep(pollInterval)
 		}
 	}()
 
 	go func() {
 		for {
-			controllers.MetricSender(storage, server)
+			//controllers.MetricSender(storage, server)
+			controllers.JsonMetricUpdate(core.GetJsonMetrics(metricNames), server)
+			//fmt.Println(core.GetJsonMetrics(metricNames))
 			time.Sleep(reportInterval)
 		}
 	}()

@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"html/template"
@@ -128,5 +130,72 @@ func (c *MetricController) mainHandler(writer http.ResponseWriter, request *http
 	}
 }
 
-func (c *MetricController) jsonUpdateHandler(writer http.ResponseWriter, request *http.Request) {}
-func (c *MetricController) jsonValueHandler(writer http.ResponseWriter, request *http.Request)  {}
+func (c *MetricController) jsonUpdateHandler(writer http.ResponseWriter, request *http.Request) {
+	var metric models.Metrics
+	dec := json.NewDecoder(request.Body)
+	if err := dec.Decode(&metric); err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	metricType := metric.Mtype
+	switch metricType {
+	case "gauge":
+		c.storage.AddGauge(request.Context(), metric.ID, *metric.Value)
+	case "counter":
+		c.storage.AddCounter(request.Context(), metric.ID, *metric.Delta)
+	default:
+		http.Error(writer, "Not Found", http.StatusNotFound)
+		return
+	}
+	writer.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(writer)
+	if err := enc.Encode(metric); err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+func (c *MetricController) jsonValueHandler(writer http.ResponseWriter, request *http.Request) {
+	var metric models.Metrics
+	dec := json.NewDecoder(request.Body)
+	if err := dec.Decode(&metric); err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	metricType := metric.Mtype
+	var response models.Metrics
+	switch metricType {
+	case "gauge":
+		value, err := c.storage.GetGaugeByName(request.Context(), metric.ID)
+		if err != nil {
+			http.Error(writer, "Not Found", http.StatusNotFound)
+			return
+		}
+		response = models.Metrics{
+			ID:    metric.ID,
+			Mtype: metricType,
+			Delta: nil,
+			Value: &value,
+		}
+	case "counter":
+		value, err := c.storage.GetCounterByName(request.Context(), metric.ID)
+		if err != nil {
+			http.Error(writer, "Not Found", http.StatusNotFound)
+			return
+		}
+		response = models.Metrics{
+			ID:    metric.ID,
+			Mtype: metricType,
+			Delta: &value,
+			Value: nil,
+		}
+	default:
+		http.Error(writer, "Not Found", http.StatusNotFound)
+		return
+	}
+	writer.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(writer)
+	if err := enc.Encode(response); err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}

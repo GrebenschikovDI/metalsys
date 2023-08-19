@@ -75,7 +75,7 @@ func MetricSender(storage MetricStorage, server string) {
 	}
 }
 
-func JsonMetricUpdate(storage []models.Metrics, server string) {
+func JSONMetricUpdate(storage []models.Metrics, server string) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	url := fmt.Sprintf("%supdate/", server)
 	for _, metric := range storage {

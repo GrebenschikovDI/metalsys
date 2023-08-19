@@ -67,7 +67,7 @@ func UpdateMetrics(metricNames []string, storage MetricStorage) {
 	getRandomValue(storage)
 }
 
-func GetJsonMetrics(metricNames []string) (storage []models.Metrics) {
+func GetJSONMetrics(metricNames []string) (storage []models.Metrics) {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 	poll := int64(1)

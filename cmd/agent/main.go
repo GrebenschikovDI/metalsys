@@ -63,8 +63,8 @@ func main() {
 	go func() {
 		for {
 			//controllers.MetricSender(storage, server)
-			controllers.JsonMetricUpdate(core.GetJsonMetrics(metricNames), server)
-			//fmt.Println(core.GetJsonMetrics(metricNames))
+			controllers.JSONMetricUpdate(core.GetJSONMetrics(metricNames), server)
+			//fmt.Println(core.GetJSONMetrics(metricNames))
 			time.Sleep(reportInterval)
 		}
 	}()

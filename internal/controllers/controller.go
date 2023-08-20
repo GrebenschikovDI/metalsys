@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -84,12 +85,22 @@ func JSONMetricUpdate(storage []models.Metrics, server string) {
 			fmt.Println("Ошибка при сериализации метрики в JSON:", err)
 			return
 		}
-		request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(requestData))
+		var compressedData bytes.Buffer
+		compressor := gzip.NewWriter(&compressedData)
+		_, err = compressor.Write(requestData)
+		if err != nil {
+			fmt.Println("Ошибка при сжатии данных:", err)
+			return
+		}
+		compressor.Close()
+
+		request, err := http.NewRequest(http.MethodPost, url, &compressedData)
 		if err != nil {
 			fmt.Println("Ошибка при создании запроса", err)
 			return
 		}
 		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Content-Encoding", "gzip")
 
 		response, err := client.Do(request)
 		if err != nil {

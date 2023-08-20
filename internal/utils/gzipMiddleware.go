@@ -1,44 +1,38 @@
 package utils
 
 import (
+	"compress/gzip"
 	"net/http"
 	"strings"
 )
 
-func GzipMiddleware(h http.Handler) http.Handler {
+func GzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,
-		// который будем передавать следующей функции
-		ow := w
-
-		// проверяем, что клиент умеет получать от сервера сжатые данные в формате gzip
 		acceptEncoding := r.Header.Get("Accept-Encoding")
-		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-		if supportsGzip {
-			// оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
-			cw := NewCompressWriter(w)
-			// меняем оригинальный http.ResponseWriter на новый
-			ow = cw
-			// не забываем отправить клиенту все сжатые данные после завершения middleware
-			defer cw.Close()
+		if !strings.Contains(acceptEncoding, "gzip") {
+			next.ServeHTTP(w, r)
+			return
 		}
 
-		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
+		w.Header().Set("Content-Encoding", "gzip")
+		gw := gzip.NewWriter(w)
+		defer gw.Close()
+
 		contentEncoding := r.Header.Get("Content-Encoding")
-		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		if sendsGzip {
-			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
-			cr, err := NewCompressReader(r.Body)
+		if strings.Contains(contentEncoding, "gzip") {
+			gzr, err := gzip.NewReader(r.Body)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-			// меняем тело запроса на новое
-			r.Body = cr
-			defer cr.Close()
+			defer gzr.Close()
+			r.Body = gzr
 		}
 
-		// передаём управление хендлеру
-		h.ServeHTTP(ow, r)
+		gzw := &gzipResponseWriter{
+			ResponseWriter: w,
+			Writer:         gw,
+		}
+		next.ServeHTTP(gzw, r)
 	})
 }

@@ -2,7 +2,9 @@ package storages
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/models"
 	"strings"
 )
 
@@ -101,4 +103,37 @@ func (m *MemStorage) ToString() string {
 		builder.WriteString(fmt.Sprintf("%s: %d\n", name, value))
 	}
 	return builder.String()
+}
+
+func (m *MemStorage) ToJSONBytes() (data []byte) {
+	for name, value := range m.gauges {
+		jsonValue := models.Metrics{
+			ID:    name,
+			Mtype: "gauge",
+			Delta: nil,
+			Value: &value,
+		}
+		jData, err := json.Marshal(jsonValue)
+		if err != nil {
+			fmt.Println(err)
+		}
+		jData = append(jData, '\n')
+		data = append(data, jData...)
+	}
+
+	for name, value := range m.counters {
+		jsonValue := models.Metrics{
+			ID:    name,
+			Mtype: "counter",
+			Delta: &value,
+			Value: nil,
+		}
+		jData, err := json.Marshal(jsonValue)
+		if err != nil {
+			fmt.Println(err)
+		}
+		jData = append(jData, '\n')
+		data = append(data, jData...)
+	}
+	return data
 }

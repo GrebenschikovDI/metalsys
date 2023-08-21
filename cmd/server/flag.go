@@ -9,7 +9,7 @@ import (
 
 // неэкспортированная переменная flagRunAddr содержит адрес и порт для запуска сервера
 var flagRunAddr string
-var flagStoreInt int
+var flagStoreInt string
 var flagStorePath string
 var flagRestore bool
 
@@ -19,7 +19,7 @@ func parseFlags() {
 	// регистрируем переменную flagRunAddr
 	// как аргумент -a со значением :8080 по умолчанию
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
-	flag.IntVar(&flagStoreInt, "i", 300, "interval to store data")
+	flag.StringVar(&flagStoreInt, "i", "300", "interval to store data")
 	flag.StringVar(&flagStorePath, "f", "/tmp/metrics-db.json", "storage path")
 	flag.BoolVar(&flagRestore, "r", true, "load saved data from storage")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
@@ -29,12 +29,7 @@ func parseFlags() {
 		flagRunAddr = envRunAddr
 	}
 	if envStoreInt := os.Getenv("STORE_INTERVAL"); envStoreInt != "" {
-		intValue, err := strconv.Atoi(envStoreInt)
-		if err != nil {
-			fmt.Println("Error", err)
-			return
-		}
-		flagStoreInt = intValue
+		flagStoreInt = envStoreInt
 	}
 	if envStorePath := os.Getenv("FILE_STORAGE_PATH"); envStorePath != "" {
 		flagStorePath = envStorePath

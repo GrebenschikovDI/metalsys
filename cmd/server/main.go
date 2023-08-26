@@ -14,7 +14,7 @@ import (
 func main() {
 	parseFlags()
 	storage := storages.NewMemStorage()
-	err := storages.LoadMetrics(flagRestore, flagStorePath, storage)
+	err := storages.LoadMetrics(false, flagStorePath, storage)
 	if err != nil {
 		logger.Log.Info("Error reading from file", zap.String("name", flagStorePath))
 	}

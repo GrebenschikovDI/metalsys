@@ -19,19 +19,15 @@ func NewMemStorage() *MemStorage {
 }
 
 func (m *MemStorage) AddMetric(_ context.Context, mc models.Metric) error {
-	m.metrics[mc.ID] = mc
 	switch mc.Mtype {
 	case "gauge":
 		m.metrics[mc.ID] = mc
 	case "counter":
-		existingMetric := m.metrics[mc.ID]
-		if existingMetric.Delta == nil {
-			deltaValue := *mc.Delta
-			existingMetric.Delta = &deltaValue
-		} else {
+		if existingMetric, ok := m.metrics[mc.ID]; ok {
 			*existingMetric.Delta += *mc.Delta
+		} else {
+			m.metrics[mc.ID] = mc
 		}
-		m.metrics[mc.ID] = existingMetric
 	}
 	return nil
 }

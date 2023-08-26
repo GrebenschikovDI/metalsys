@@ -10,7 +10,7 @@ type (
 
 	loggingResponseWriter struct {
 		http.ResponseWriter
-		responseData *responseData
+		responseData responseData
 	}
 )
 

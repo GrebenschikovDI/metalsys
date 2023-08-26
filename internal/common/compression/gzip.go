@@ -1,4 +1,4 @@
-package utils
+package compression
 
 import (
 	"io"
@@ -10,6 +10,7 @@ type gzipResponseWriter struct {
 	io.Writer
 }
 
+// желательно создать конструктор
 func (gzw *gzipResponseWriter) Write(data []byte) (int, error) {
 	return gzw.Writer.Write(data)
 }

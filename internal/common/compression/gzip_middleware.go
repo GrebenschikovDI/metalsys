@@ -1,4 +1,4 @@
-package utils
+package compression
 
 import (
 	"compress/gzip"
@@ -8,6 +8,8 @@ import (
 
 func GzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// пересмотреть порядок обработки
+		// клиент ожидает
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		if !strings.Contains(acceptEncoding, "gzip") {
 			next.ServeHTTP(w, r)
@@ -20,7 +22,7 @@ func GzipMiddleware(next http.Handler) http.Handler {
 
 		contentType := "text/html"
 		w.Header().Set("Content-Type", contentType)
-
+		// клиент прислал формат
 		contentEncoding := r.Header.Get("Content-Encoding")
 		if strings.Contains(contentEncoding, "gzip") {
 			gzr, err := gzip.NewReader(r.Body)

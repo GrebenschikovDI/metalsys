@@ -33,7 +33,7 @@ func RequestLogger(next http.Handler) http.Handler {
 		}
 		loggingResponseWriter := loggingResponseWriter{
 			ResponseWriter: w,
-			responseData:   responseData,
+			responseData:   *responseData,
 		}
 
 		defer func() {

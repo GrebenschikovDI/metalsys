@@ -22,6 +22,7 @@ func GzipMiddleware(next http.Handler) http.Handler {
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
 		if sendsGzip {
 			cr, err := gzip.NewReader(r.Body)
+			defer r.Body.Close()
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return

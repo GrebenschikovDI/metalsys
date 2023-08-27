@@ -8,29 +8,28 @@ import (
 
 func GzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ow := w
 
-		gw := w
 		acceptEncoding := r.Header.Get("Accept-Encoding")
-		if strings.Contains(acceptEncoding, "gzip") {
-			gw := gzip.NewWriter(w)
-			defer gw.Close()
+		supportsGzip := strings.Contains(acceptEncoding, "gzip")
+		if supportsGzip {
+			cw := newCompressWriter(w)
+			ow = cw
+			defer cw.Close()
 		}
 
 		contentEncoding := r.Header.Get("Content-Encoding")
-		if strings.Contains(contentEncoding, "gzip") {
-			gzr, err := gzip.NewReader(r.Body)
+		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		if sendsGzip {
+			cr, err := gzip.NewReader(r.Body)
 			if err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			defer gzr.Close()
-			r.Body = gzr
+			r.Body = cr
+			defer cr.Close()
 		}
 
-		gzw := &gzipResponseWriter{
-			ResponseWriter: w,
-			Writer:         gw,
-		}
-		next.ServeHTTP(gzw, r)
+		next.ServeHTTP(ow, r)
 	})
 }

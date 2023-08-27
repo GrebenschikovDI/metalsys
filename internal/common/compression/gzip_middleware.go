@@ -8,21 +8,14 @@ import (
 
 func GzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// пересмотреть порядок обработки
-		// клиент ожидает
+
+		gw := w
 		acceptEncoding := r.Header.Get("Accept-Encoding")
-		if !strings.Contains(acceptEncoding, "gzip") {
-			next.ServeHTTP(w, r)
-			return
+		if strings.Contains(acceptEncoding, "gzip") {
+			gw := gzip.NewWriter(w)
+			defer gw.Close()
 		}
 
-		w.Header().Set("Content-Encoding", "gzip")
-		gw := gzip.NewWriter(w)
-		defer gw.Close()
-
-		contentType := "text/html"
-		w.Header().Set("Content-Type", contentType)
-		// клиент прислал формат
 		contentEncoding := r.Header.Get("Content-Encoding")
 		if strings.Contains(contentEncoding, "gzip") {
 			gzr, err := gzip.NewReader(r.Body)

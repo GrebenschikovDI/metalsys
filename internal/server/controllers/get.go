@@ -27,7 +27,7 @@ func (c *ControllerContext) getRoot(writer http.ResponseWriter, request *http.Re
 
 		}
 	}
-
+	writer.Header().Set("Content-Type", "text/html")
 	tmpl := template.Must(template.ParseFiles("templates/metricList.html"))
 	err = tmpl.Execute(writer, metricList)
 	if err != nil {

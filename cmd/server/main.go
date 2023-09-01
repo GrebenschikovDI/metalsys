@@ -2,35 +2,62 @@ package main
 
 import (
 	"errors"
-	"github.com/GrebenschikovDI/metalsys.git/internal/controllers"
-	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
-	"github.com/go-chi/chi/v5"
-	"log"
+	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
+	"github.com/GrebenschikovDI/metalsys.git/internal/server/controllers"
+	"github.com/GrebenschikovDI/metalsys.git/internal/server/storages"
+	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func run() error {
 	parseFlags()
 	storage := storages.NewMemStorage()
-	contr := controllers.NewMetricController(storage)
-	router := chi.NewRouter()
-	router.Mount("/", contr.Route())
+	err := storages.LoadMetrics(flagRestore, flagStorePath, storage)
+	if err != nil {
+		logger.Log.Info("Error reading from file", zap.String("name", flagStorePath))
+	}
+
+	storeInterval, err := time.ParseDuration(fmt.Sprintf("%ss", flagStoreInt))
+	if err != nil {
+		logger.Log.Info("Ошибка при парсинге длительности:", zap.Error(err))
+	}
+
+	go func() {
+		for {
+			time.Sleep(storeInterval)
+			err := storages.SaveMetrics(flagStorePath, storage)
+			if err != nil {
+				logger.Log.Info("Error writing in file", zap.String("name", flagStorePath))
+			}
+		}
+	}()
+
+	if err := run(storage); err != nil {
+		panic(err)
+	}
+
+	select {}
+}
+
+func run(storage *storages.MemStorage) error {
+	if err := logger.Initialize("info"); err != nil {
+		return err
+	}
+
+	ctx := controllers.NewControllerContext(storage)
+	router := controllers.MetricsRouter(ctx)
 
 	server := &http.Server{
 		Addr:    flagRunAddr,
 		Handler: router,
 	}
 
-	log.Printf("Серевер запущен на http://%s\n", flagRunAddr)
+	logger.Log.Info("Running server", zap.String("address", flagRunAddr))
 
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("Ошибка при запуске сервера: %v", err)
+		logger.Log.Fatal("Error within server init", zap.Error(err))
 	}
 
 	return nil

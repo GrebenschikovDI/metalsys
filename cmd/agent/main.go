@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/GrebenschikovDI/metalsys.git/internal/controllers"
-	"github.com/GrebenschikovDI/metalsys.git/internal/core"
-	"github.com/GrebenschikovDI/metalsys.git/internal/storages"
+	"github.com/GrebenschikovDI/metalsys.git/internal/client/controllers"
+	"github.com/GrebenschikovDI/metalsys.git/internal/client/core"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"time"
 )
 
@@ -52,18 +52,23 @@ func main() {
 	}
 
 	server := fmt.Sprintf("http://%s/", flagSendAddr)
-	storage := storages.NewMemStorage()
+	storage := make(map[string]models.Metric)
+	var counter int64
 
 	go func() {
 		for {
-			core.UpdateMetrics(metricNames, storage)
+			core.GetRuntimeMetrics(metricNames, storage)
+			counter += 1
+			storage["PollCount"] = core.GetPollCount(counter)
+			storage["RandomValue"] = core.GetRandomValue()
 			time.Sleep(pollInterval)
 		}
 	}()
 
 	go func() {
 		for {
-			controllers.MetricSender(storage, server)
+			//controllers.Send(storage, server)
+			controllers.SendJSON(storage, server)
 			time.Sleep(reportInterval)
 		}
 	}()

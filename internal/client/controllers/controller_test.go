@@ -87,5 +87,5 @@ func (m *MockMetricStorage) ToString() string {
 //	}))
 //	defer mockServer.Close()
 //
-//	MetricSender(mockStorage, mockServer.URL)
+//	send(mockStorage, mockServer.URL)
 //}

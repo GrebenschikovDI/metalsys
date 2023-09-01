@@ -14,6 +14,7 @@ func MetricsRouter(ctx *ControllerContext) *chi.Mux {
 	r.Use(middleware.Recoverer)
 	r.Get("/", ctx.getRoot)
 	r.Get("/value/{type}/{name}", ctx.getValue)
+	r.Get("/ping", ping)
 	r.Post("/update/{type}/{name}/{value}", ctx.update)
 	r.Post("/update/", ctx.updateJSON)
 	r.Post("/value/", ctx.getValueJSON)

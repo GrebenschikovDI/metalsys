@@ -12,6 +12,7 @@ var flagRunAddr string
 var flagStoreInt string
 var flagStorePath string
 var flagRestore bool
+var flagDB string
 
 // parseFlags обрабатывает аргументы командной строки
 // и сохраняет их значения в соответствующих переменных
@@ -22,6 +23,7 @@ func parseFlags() {
 	flag.StringVar(&flagStoreInt, "i", "300", "interval to store data")
 	flag.StringVar(&flagStorePath, "f", "/tmp/metrics-db.json", "storage path")
 	flag.BoolVar(&flagRestore, "r", true, "load saved data from storage")
+	flag.StringVar(&flagDB, "d", "", "database address")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 
@@ -41,5 +43,13 @@ func parseFlags() {
 			return
 		}
 		flagRestore = boolValue
+	}
+	if envDataBase := os.Getenv("DATABASE_DSN"); envDataBase != "" {
+		flagDB = envDataBase
+	} else {
+		err := os.Setenv("DATABASE_DSN", flagDB)
+		if err != nil {
+			return
+		}
 	}
 }

@@ -93,5 +93,9 @@ func ping(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	defer db.Close()
+	if err := db.Ping(); err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	writer.WriteHeader(http.StatusOK)
 }

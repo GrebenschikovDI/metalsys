@@ -47,9 +47,6 @@ func parseFlags() {
 	if envDataBase := os.Getenv("DATABASE_DSN"); envDataBase != "" {
 		flagDB = envDataBase
 	} else {
-		err := os.Setenv("DATABASE_DSN", flagDB)
-		if err != nil {
-			return
-		}
+		os.Setenv("DATABASE_DSN", flagDB)
 	}
 }

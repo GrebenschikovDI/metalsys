@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/repository"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/storages"
 	"go.uber.org/zap"
@@ -13,7 +15,23 @@ import (
 
 func main() {
 	parseFlags()
-	storage := storages.NewMemStorage()
+	//connStr := ConnStr
+	var storage repository.Repository
+	if flagDB == "" {
+		storage = storages.NewMemStorage()
+	} else {
+		connStr := flagDB
+		db, err := storages.InitDB(context.Background(), connStr)
+		if err != nil {
+			fmt.Println("NO DB")
+		}
+		err = db.CreateMetricsTable()
+		if err != nil {
+			fmt.Println("NO TABLE")
+		}
+		storage = db
+	}
+
 	err := storages.LoadMetrics(flagRestore, flagStorePath, storage)
 	if err != nil {
 		logger.Log.Info("Error reading from file", zap.String("name", flagStorePath))
@@ -41,7 +59,7 @@ func main() {
 	select {}
 }
 
-func run(storage *storages.MemStorage) error {
+func run(storage repository.Repository) error {
 	if err := logger.Initialize("info"); err != nil {
 		return err
 	}

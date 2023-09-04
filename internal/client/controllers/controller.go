@@ -40,32 +40,16 @@ func Send(metrics map[string]models.Metric, server string) {
 }
 
 func SendJSON(storage map[string]models.Metric, server string) {
-	client := &http.Client{Timeout: 10 * time.Second}
 	url := fmt.Sprintf("%supdate/", server)
+
 	for _, metric := range storage {
-		requestData, err := json.Marshal(metric)
-		if err != nil {
-			fmt.Println("Ошибка при сериализации метрики в JSON:", err)
-			return
-		}
-		var compressedData bytes.Buffer
-		compressor := gzip.NewWriter(&compressedData)
-		_, err = compressor.Write(requestData)
+		compressedData, err := compressData(metric)
 		if err != nil {
 			fmt.Println("Ошибка при сжатии данных:", err)
 			return
 		}
-		compressor.Close()
 
-		request, err := http.NewRequest(http.MethodPost, url, &compressedData)
-		if err != nil {
-			fmt.Println("Ошибка при создании запроса", err)
-			return
-		}
-		request.Header.Set("Content-Type", "application/json")
-		request.Header.Set("Content-Encoding", "gzip")
-
-		response, err := client.Do(request)
+		response, err := sendRequest(url, compressedData)
 		if err != nil {
 			fmt.Println("Ошибка при отправке запроса:", err)
 			return
@@ -76,4 +60,58 @@ func SendJSON(storage map[string]models.Metric, server string) {
 			return
 		}
 	}
+}
+
+func SendSlice(storage map[string]models.Metric, server string) {
+	var metrics []models.Metric
+
+	url := fmt.Sprintf("%supdates/", server)
+
+	for _, value := range storage {
+		metrics = append(metrics, value)
+	}
+
+	compressedData, err := compressData(metrics)
+	if err != nil {
+		fmt.Println("Ошибка при сжатии данных:", err)
+		return
+	}
+
+	response, err := sendRequest(url, compressedData)
+	if err != nil {
+		fmt.Println("Ошибка при отправке запроса:", err)
+		return
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		fmt.Println("Неожиданный ответ:", response.StatusCode)
+		return
+	}
+}
+
+func compressData(data interface{}) ([]byte, error) {
+	requestData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	var compressedData bytes.Buffer
+	compressor := gzip.NewWriter(&compressedData)
+	_, err = compressor.Write(requestData)
+	if err != nil {
+		return nil, err
+	}
+	compressor.Close()
+	return compressedData.Bytes(), nil
+}
+
+func sendRequest(url string, requestData []byte) (*http.Response, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(requestData))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Content-Encoding", "gzip")
+	return client.Do(request)
 }

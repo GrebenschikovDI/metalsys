@@ -15,35 +15,24 @@ import (
 
 func main() {
 	parseFlags()
-	connStr := ConnStr
+	//connStr := ConnStr
 	var storage repository.Repository
-	//if flagDB == "" {
-	//	storage = storages.NewMemStorage()
-	//} else {
-	//	connStr := flagDB
-	//	db, err := storages.InitDB(context.Background(), connStr)
-	//	if err != nil {
-	//		fmt.Println("NO DB")
-	//	}
-	//	err = db.CreateMetricsTable()
-	//	if err != nil {
-	//		fmt.Println("NO TABLE")
-	//	}
-	//	storage = db
-	//}
-
-	//connStr := flagDB
-	db, err := storages.InitDB(context.Background(), connStr)
-	if err != nil {
-		fmt.Println("NO DB")
+	if flagDB == "" {
+		storage = storages.NewMemStorage()
+	} else {
+		connStr := flagDB
+		db, err := storages.InitDB(context.Background(), connStr)
+		if err != nil {
+			fmt.Println("NO DB")
+		}
+		err = db.CreateMetricsTable()
+		if err != nil {
+			fmt.Println("NO TABLE")
+		}
+		storage = db
 	}
-	err = db.CreateMetricsTable()
-	if err != nil {
-		fmt.Println("NO TABLE")
-	}
-	storage = db
 
-	err = storages.LoadMetrics(flagRestore, flagStorePath, storage)
+	err := storages.LoadMetrics(flagRestore, flagStorePath, storage)
 	if err != nil {
 		logger.Log.Info("Error reading from file", zap.String("name", flagStorePath))
 	}

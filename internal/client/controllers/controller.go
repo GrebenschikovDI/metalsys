@@ -71,6 +71,10 @@ func SendSlice(storage map[string]models.Metric, server string) {
 		metrics = append(metrics, value)
 	}
 
+	if len(metrics) == 0 {
+		return
+	}
+
 	compressedData, err := compressData(metrics)
 	if err != nil {
 		fmt.Println("Ошибка при сжатии данных:", err)

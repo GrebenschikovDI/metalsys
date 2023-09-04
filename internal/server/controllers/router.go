@@ -18,5 +18,6 @@ func MetricsRouter(ctx *ControllerContext) *chi.Mux {
 	r.Post("/update/{type}/{name}/{value}", ctx.update)
 	r.Post("/update/", ctx.updateJSON)
 	r.Post("/value/", ctx.getValueJSON)
+	r.Post("/updates/", ctx.updates)
 	return r
 }

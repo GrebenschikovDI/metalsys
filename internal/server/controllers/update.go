@@ -65,3 +65,14 @@ func (c *ControllerContext) updateJSON(writer http.ResponseWriter, request *http
 		return
 	}
 }
+
+func (c *ControllerContext) updates(writer http.ResponseWriter, request *http.Request) {
+	var metrics []models.Metric
+	dec := json.NewDecoder(request.Body)
+	if err := dec.Decode(&metrics); err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	c.storage.AddMetrics(request.Context(), metrics)
+	writer.WriteHeader(http.StatusOK)
+}

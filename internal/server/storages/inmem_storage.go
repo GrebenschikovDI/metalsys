@@ -32,6 +32,13 @@ func (m *MemStorage) AddMetric(_ context.Context, mc models.Metric) error {
 	return nil
 }
 
+func (m *MemStorage) AddMetrics(ctx context.Context, metrics []models.Metric) error {
+	for _, metric := range metrics {
+		m.AddMetric(ctx, metric)
+	}
+	return nil
+}
+
 func (m *MemStorage) GetMetric(_ context.Context, name string) (value models.Metric, err error) {
 	value, found := m.metrics[name]
 	if !found {

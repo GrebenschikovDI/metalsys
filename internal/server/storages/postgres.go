@@ -49,6 +49,34 @@ func (s *PgStorage) AddMetric(ctx context.Context, mc models.Metric) error {
 	return err
 }
 
+func (s *PgStorage) AddMetrics(ctx context.Context, metrics []models.Metric) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := `
+		INSERT INTO metrics (id, mtype, delta, value)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (id) DO UPDATE
+		SET delta = metrics.delta + EXCLUDED.delta, value = EXCLUDED.value;
+	`
+
+	for _, mc := range metrics {
+		_, err := tx.ExecContext(ctx, query, mc.ID, mc.Mtype, mc.Delta, mc.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *PgStorage) GetMetric(ctx context.Context, name string) (value models.Metric, err error) {
 	row := s.db.QueryRowContext(ctx, "SELECT * FROM metrics WHERE id = $1", name)
 

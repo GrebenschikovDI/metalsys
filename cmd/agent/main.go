@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/GrebenschikovDI/metalsys.git/internal/client/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/core"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"time"
@@ -51,7 +50,7 @@ func main() {
 		return
 	}
 
-	server := fmt.Sprintf("http://%s/", flagSendAddr)
+	//server := fmt.Sprintf("http://%s/", flagSendAddr)
 	storage := make(map[string]models.Metric)
 	var counter int64
 
@@ -69,7 +68,7 @@ func main() {
 		for {
 			//controllers.Send(storage, server)
 			//controllers.SendJSON(storage, server)
-			controllers.SendSlice(storage, server)
+			//controllers.SendSlice(storage, server)
 			time.Sleep(reportInterval)
 		}
 	}()

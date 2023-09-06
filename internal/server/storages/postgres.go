@@ -4,9 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/lib/pq"
 )
 
 type PgStorage struct {
@@ -14,7 +19,7 @@ type PgStorage struct {
 	connStr string
 }
 
-func InitDB(_ context.Context, connStr string) (*PgStorage, error) {
+func InitDB(_ context.Context, connStr, dirPath string) (*PgStorage, error) {
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		return nil, err
@@ -23,7 +28,23 @@ func InitDB(_ context.Context, connStr string) (*PgStorage, error) {
 		db:      db,
 		connStr: connStr,
 	}
+	err = storage.runMigrations(connStr, dirPath)
+	if err != nil {
+		return nil, err
+	}
 	return storage, nil
+}
+
+func (s *PgStorage) runMigrations(connStr, dirPath string) error {
+	m, err := migrate.New(fmt.Sprintf("file://%s", dirPath), connStr)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
+	}
+	return nil
 }
 
 func (s *PgStorage) CreateMetricsTable() error {

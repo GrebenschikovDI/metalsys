@@ -13,21 +13,19 @@ import (
 	"time"
 )
 
+const dirPath = "sql/migrations"
+
 func main() {
 	parseFlags()
-	//connStr := ConnStr
+	//flagDB := ConnStr
 	var storage repository.Repository
 	if flagDB == "" {
 		storage = storages.NewMemStorage()
 	} else {
 		connStr := flagDB
-		db, err := storages.InitDB(context.Background(), connStr)
+		db, err := storages.InitDB(context.Background(), connStr, dirPath)
 		if err != nil {
 			fmt.Println("NO DB")
-		}
-		err = db.CreateMetricsTable()
-		if err != nil {
-			fmt.Println("NO TABLE")
 		}
 		storage = db
 	}

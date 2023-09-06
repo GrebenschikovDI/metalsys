@@ -78,7 +78,7 @@ func (s *PgStorage) AddMetrics(ctx context.Context, metrics []models.Metric) err
 }
 
 func (s *PgStorage) GetMetric(ctx context.Context, name string) (value models.Metric, err error) {
-	row := s.db.QueryRowContext(ctx, "SELECT * FROM metrics WHERE id = $1", name)
+	row := s.db.QueryRowContext(ctx, "SELECT id, mtype, delta, value FROM metrics WHERE id = $1", name)
 
 	err = row.Scan(&value.ID, &value.Mtype, &value.Delta, &value.Value)
 	if err != nil {
@@ -89,8 +89,8 @@ func (s *PgStorage) GetMetric(ctx context.Context, name string) (value models.Me
 	return value, err
 }
 
-func (s *PgStorage) GetMetrics(_ context.Context) ([]models.Metric, error) {
-	rows, err := s.db.Query("SELECT * FROM metrics")
+func (s *PgStorage) GetMetrics(ctx context.Context) ([]models.Metric, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT id, mtype, delta, value FROM metrics")
 	if err != nil {
 		return nil, err
 	}

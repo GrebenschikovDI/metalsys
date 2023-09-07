@@ -3,19 +3,20 @@ package retry
 import (
 	"context"
 	"errors"
+	"net/http"
 	"time"
 )
 
-func Retry(ctx context.Context, fn func() error, retries int) error {
+func Retry(ctx context.Context, fn func() (*http.Response, error), retries int) (*http.Response, error) {
 	var errs []error
 	for i := 0; i < retries; i++ {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil, ctx.Err()
 		default:
-			err := fn()
+			r, err := fn()
 			if err == nil {
-				return nil
+				return r, nil
 			}
 			errs = append(errs, err)
 			interval := time.Duration(i+1) * time.Second
@@ -24,5 +25,5 @@ func Retry(ctx context.Context, fn func() error, retries int) error {
 	}
 	err := errors.New("max retries reached")
 	errs = append(errs, err)
-	return errors.Join(errs...)
+	return nil, errors.Join(errs...)
 }

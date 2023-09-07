@@ -83,7 +83,7 @@ func SendSlice(storage map[string]models.Metric, server string) {
 		return
 	}
 
-	response, err := sendRequestWithRetry(context.TODO(), url, compressedData, 3)
+	response, err := SendWithRetry(context.Background(), url, compressedData, 3)
 	if err != nil {
 		fmt.Println("Ошибка при отправке запроса:", err)
 		return
@@ -119,34 +119,11 @@ func sendRequest(url string, requestData []byte) (*http.Response, error) {
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	response.Body.Close()
-	return response, err
+	return client.Do(request)
 }
 
-func sendRequestWithRetry(ctx context.Context, url string, requestData []byte, retries int) (*http.Response, error) {
-	var response *http.Response
-	var err error
-
-	err = retry.Retry(ctx, func() error {
-		response, err = sendRequest(url, requestData)
-		if err != nil {
-			return err
-		}
-		response.Body.Close()
-		return nil
+func SendWithRetry(ctx context.Context, url string, requestData []byte, retries int) (*http.Response, error) {
+	return retry.Retry(ctx, func() (*http.Response, error) {
+		return sendRequest(url, requestData)
 	}, retries)
-
-	if response != nil {
-		response.Body.Close()
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
 }

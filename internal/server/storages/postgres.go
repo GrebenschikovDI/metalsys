@@ -38,7 +38,6 @@ func InitDB(_ context.Context, connStr, dirPath string) (*PgStorage, error) {
 func (s *PgStorage) runMigrations(connStr, dirPath string) error {
 	m, err := migrate.New(fmt.Sprintf("file://%s", dirPath), connStr)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {

@@ -17,7 +17,7 @@ const dirPath = "sql/migrations"
 
 func main() {
 	parseFlags()
-	//flagDB := ConnStr
+	//flagDB := Dsn
 	var storage repository.Repository
 	if flagDB == "" {
 		storage = storages.NewMemStorage()

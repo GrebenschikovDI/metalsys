@@ -3,9 +3,11 @@ package controllers
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/retry"
 	"net/http"
 	"time"
 )
@@ -81,7 +83,7 @@ func SendSlice(storage map[string]models.Metric, server string) {
 		return
 	}
 
-	response, err := sendRequest(url, compressedData)
+	response, err := sendRequestWithRetry(context.TODO(), url, compressedData, 3)
 	if err != nil {
 		fmt.Println("Ошибка при отправке запроса:", err)
 		return
@@ -117,5 +119,34 @@ func sendRequest(url string, requestData []byte) (*http.Response, error) {
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
-	return client.Do(request)
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	response.Body.Close()
+	return response, err
+}
+
+func sendRequestWithRetry(ctx context.Context, url string, requestData []byte, retries int) (*http.Response, error) {
+	var response *http.Response
+	var err error
+
+	err = retry.Retry(ctx, func() error {
+		response, err = sendRequest(url, requestData)
+		if err != nil {
+			return err
+		}
+		response.Body.Close()
+		return nil
+	}, retries)
+
+	if response != nil {
+		response.Body.Close()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

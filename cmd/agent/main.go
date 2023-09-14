@@ -67,8 +67,9 @@ func main() {
 
 	go func() {
 		for {
-			//controllers.Send(storage, server)
-			controllers.SendJSON(storage, server)
+			controllers.Send(storage, server)
+			//controllers.SendJSON(storage, server)
+			//controllers.SendSlice(storage, server)
 			time.Sleep(reportInterval)
 		}
 	}()

@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/repository"
 	"os"
 )
 
-func SaveMetrics(path string, storage *MemStorage) error {
+func SaveMetrics(path string, storage repository.Repository) error {
 	metrics, err := storage.GetMetrics(context.Background())
 	if err != nil {
 		return err
@@ -23,7 +24,7 @@ func SaveMetrics(path string, storage *MemStorage) error {
 	return nil
 }
 
-func LoadMetrics(restore bool, path string, storage *MemStorage) error {
+func LoadMetrics(restore bool, path string, storage repository.Repository) error {
 	if restore {
 		data, err := os.ReadFile(path)
 		if err != nil {

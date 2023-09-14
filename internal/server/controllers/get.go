@@ -1,12 +1,15 @@
 package controllers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"github.com/go-chi/chi/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"html/template"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -81,4 +84,18 @@ func (c *ControllerContext) getValueJSON(writer http.ResponseWriter, request *ht
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
+}
+
+func ping(writer http.ResponseWriter, request *http.Request) {
+	db, err := sql.Open("pgx", os.Getenv("DATABASE_DSN"))
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	writer.WriteHeader(http.StatusOK)
 }

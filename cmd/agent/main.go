@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/client/config"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/core"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -39,19 +41,14 @@ var metricNames = []string{
 }
 
 func main() {
-	parseFlags()
-	pollInterval, err := time.ParseDuration(fmt.Sprintf("%ss", flagPollInt))
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		fmt.Println("Ошибка при парсинге длительности:", err)
-		return
+		logger.Log.Info("Error loading config", zap.Error(err))
 	}
-	reportInterval, err := time.ParseDuration(fmt.Sprintf("%ss", flagRepInt))
-	if err != nil {
-		fmt.Println("Ошибка при парсинге длительности:", err)
-		return
-	}
+	pollInterval := cfg.PollInterval
+	reportInterval := cfg.ReportInterval
 
-	server := fmt.Sprintf("http://%s/", flagSendAddr)
+	server := cfg.ServerAddress
 	storage := make(map[string]models.Metric)
 	var counter int64
 
@@ -67,9 +64,9 @@ func main() {
 
 	go func() {
 		for {
-			controllers.Send(storage, server)
+			//controllers.Send(storage, server)
 			//controllers.SendJSON(storage, server)
-			//controllers.SendSlice(storage, server)
+			controllers.SendSlice(storage, server)
 			time.Sleep(reportInterval)
 		}
 	}()

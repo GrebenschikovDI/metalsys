@@ -1,32 +1,45 @@
-package main
+package config
 
 import (
 	"flag"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
-// неэкспортированная переменная flagRunAddr содержит адрес и порт для запуска сервера
-var flagRunAddr string
-var flagStoreInt string
-var flagStorePath string
-var flagRestore bool
-var flagDB string
+type ServerConfig struct {
+	ServerAddress   string
+	StoreInterval   time.Duration
+	FileStoragePath string
+	Restore         bool
+	Dsn             string
+	HashKey         string
+}
 
-// parseFlags обрабатывает аргументы командной строки
-// и сохраняет их значения в соответствующих переменных
-func parseFlags() {
-	// регистрируем переменную flagRunAddr
-	// как аргумент -a со значением :8080 по умолчанию
+var (
+	flagRunAddr   string
+	flagStoreInt  string
+	flagStorePath string
+	flagRestore   bool
+	flagDB        string
+	flagKey       string
+)
+
+func LoadConfig() (*ServerConfig, error) {
+
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&flagStoreInt, "i", "300", "interval to store data")
 	flag.StringVar(&flagStorePath, "f", "/tmp/metrics-db.json", "storage path")
 	flag.BoolVar(&flagRestore, "r", true, "load saved data from storage")
 	flag.StringVar(&flagDB, "d", "", "database address")
+	flag.StringVar(&flagKey, "k", "", "sign key")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 
+	if envKey := os.Getenv("KEY"); envKey != "" {
+		flagKey = envKey
+	}
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		flagRunAddr = envRunAddr
 	}
@@ -39,8 +52,7 @@ func parseFlags() {
 	if envRestore := os.Getenv("RESTORE"); envRestore != "" {
 		boolValue, err := strconv.ParseBool(envRestore)
 		if err != nil {
-			fmt.Println("Error", err)
-			return
+			return nil, fmt.Errorf("cannot parse Restore to bool: %w", err)
 		}
 		flagRestore = boolValue
 	}
@@ -49,4 +61,24 @@ func parseFlags() {
 	} else {
 		os.Setenv("DATABASE_DSN", flagDB)
 	}
+
+	storeInterval, err := time.ParseDuration(fmt.Sprintf("%ss", flagStoreInt))
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse StoreInterval to Duration: %w", err)
+	}
+
+	cfg := &ServerConfig{
+		ServerAddress:   flagRunAddr,
+		StoreInterval:   storeInterval,
+		FileStoragePath: flagStorePath,
+		Restore:         flagRestore,
+		Dsn:             flagDB,
+		HashKey:         flagKey,
+	}
+
+	return cfg, nil
+}
+
+func (c *ServerConfig) GetConfig() *ServerConfig {
+	return c
 }

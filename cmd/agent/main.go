@@ -48,7 +48,6 @@ func main() {
 	pollInterval := cfg.GetPollInterval()
 	reportInterval := cfg.GetReportInterval()
 
-	server := cfg.GetServerAddress()
 	storage := make(map[string]models.Metric)
 	var counter int64
 
@@ -64,9 +63,9 @@ func main() {
 
 	go func() {
 		for {
-			controllers.Send(storage, server)
-			//controllers.SendJSON(storage, server)
-			//controllers.SendSlice(storage, server)
+			controllers.Send(storage, *cfg)
+			//controllers.SendJSON(storage, *cfg)
+			//controllers.SendSlice(storage, *cfg)
 			time.Sleep(reportInterval)
 		}
 	}()

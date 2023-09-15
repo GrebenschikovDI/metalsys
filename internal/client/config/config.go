@@ -8,13 +8,15 @@ import (
 	"time"
 )
 
+// AgentConfig представляет конфигурацию агента.
 type AgentConfig struct {
-	serverAddress  string
-	reportInterval time.Duration
-	pollInterval   time.Duration
-	hashKey        string
+	serverAddress  string        // Адрес и порт сервера.
+	reportInterval time.Duration // Интервал с которым отправляются данные.
+	pollInterval   time.Duration // Интервал с которым собираются данные.
+	hashKey        string        // Ключ для подписи данных.
 }
 
+// Константы с значениями по умолчанию.
 const (
 	defaultServerAddress  = "localhost:8080"
 	defaultReportInterval = 10 * time.Second
@@ -22,6 +24,7 @@ const (
 	defaultHashKey        = ""
 )
 
+// LoadConfig загружает конфигурацию агента из флагов командной строки и переменных окружения.
 func LoadConfig() (*AgentConfig, error) {
 	cfg := &AgentConfig{}
 	err := cfg.configureFlags()
@@ -35,6 +38,7 @@ func LoadConfig() (*AgentConfig, error) {
 	return cfg, nil
 }
 
+// configureFlags настраивает флаги командной строки для конфигурации.
 func (c *AgentConfig) configureFlags() error {
 	flag.StringVar(&c.hashKey, "k", defaultHashKey, "sign key")
 	serverAddress := flag.String("a", defaultServerAddress, "address and port to run server")
@@ -56,6 +60,7 @@ func (c *AgentConfig) configureFlags() error {
 	return nil
 }
 
+// configureEnvVars настраивает конфигурацию из переменных окружения.
 func (c *AgentConfig) configureEnvVars() error {
 	if envKey := os.Getenv("KEY"); envKey != "" {
 		c.hashKey = envKey
@@ -92,15 +97,22 @@ func parseDuration(value string, defaultValue time.Duration) (time.Duration, err
 	return duration, nil
 }
 
+// GetServerAddress возврщает адрес и порт сервера.
 func (c *AgentConfig) GetServerAddress() string {
 	return c.serverAddress
 }
+
+// GetReportInterval возвращает интервал с которым отправляются данные.
 func (c *AgentConfig) GetReportInterval() time.Duration {
 	return c.reportInterval
 }
+
+// GetPollInterval возвращает интервал с которым собираются данные.
 func (c *AgentConfig) GetPollInterval() time.Duration {
 	return c.pollInterval
 }
+
+// GetHashKey возвращает ключ для подписи данных.
 func (c *AgentConfig) GetHashKey() string {
 	return c.hashKey
 }

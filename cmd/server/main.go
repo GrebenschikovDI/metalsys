@@ -21,30 +21,30 @@ func main() {
 	if err != nil {
 		logger.Log.Info("Error loading config", zap.Error(err))
 	}
-	//flagDB := Dsn
 	var storage repository.Repository
-	if cfg.Dsn == "" {
+	connStr := cfg.GetDsn()
+	if connStr == "" {
 		storage = storages.NewMemStorage()
 	} else {
-		connStr := cfg.Dsn
 		db, err := storages.InitDB(context.Background(), connStr, dirPath)
 		if err != nil {
 			fmt.Println("NO DB")
 		}
 		storage = db
 	}
-
-	err = storages.LoadMetrics(cfg.Restore, cfg.FileStoragePath, storage)
+	filePath := cfg.GetFileStoragePath()
+	err = storages.LoadMetrics(cfg.GetRestore(), filePath, storage)
 	if err != nil {
-		logger.Log.Info("Error reading from file", zap.String("name", cfg.FileStoragePath))
+		logger.Log.Info("Error reading from file", zap.String("name", filePath))
 	}
+	interval := cfg.GetStoreInterval()
 
 	go func() {
 		for {
-			time.Sleep(cfg.StoreInterval)
-			err := storages.SaveMetrics(cfg.FileStoragePath, storage)
+			time.Sleep(interval)
+			err := storages.SaveMetrics(filePath, storage)
 			if err != nil {
-				logger.Log.Info("Error writing in file", zap.String("name", cfg.FileStoragePath))
+				logger.Log.Info("Error writing in file", zap.String("name", filePath))
 			}
 		}
 	}()
@@ -63,13 +63,14 @@ func run(storage repository.Repository, cfg config.ServerConfig) error {
 
 	ctx := controllers.NewControllerContext(storage, cfg)
 	router := controllers.MetricsRouter(ctx)
+	address := cfg.GetServerAddress()
 
 	server := &http.Server{
-		Addr:    cfg.ServerAddress,
+		Addr:    address,
 		Handler: router,
 	}
 
-	logger.Log.Info("Running server", zap.String("address", cfg.ServerAddress))
+	logger.Log.Info("Running server", zap.String("address", address))
 
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		logger.Log.Fatal("Error within server init", zap.Error(err))

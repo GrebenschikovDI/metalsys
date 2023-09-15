@@ -8,77 +8,138 @@ import (
 	"time"
 )
 
+// ServerConfig представляет конфигурацию сервера.
 type ServerConfig struct {
-	ServerAddress   string
-	StoreInterval   time.Duration
-	FileStoragePath string
-	Restore         bool
-	Dsn             string
-	HashKey         string
+	serverAddress   string        // Адрес и порт сервера (например, "localhost:8080").
+	storeInterval   time.Duration // Интервал сохранения данных.
+	fileStoragePath string        // Путь к файловому хранилищу.
+	restore         bool          // Флаг, указывающий, следует ли восстанавливать сохраненные данные.
+	dsn             string        // Адрес базы данных.
+	hashKey         string        // Ключ для подписи данных.
 }
 
-var (
-	flagRunAddr   string
-	flagStoreInt  string
-	flagStorePath string
-	flagRestore   bool
-	flagDB        string
-	flagKey       string
+// Константы с значениями по умолчанию.
+const (
+	defaultServerAddress   = "localhost:8080"
+	defaultInterval        = 300 * time.Second
+	defaultRestore         = true
+	defaultFileStoragePath = "/tmp/metrics-db.json"
+	defaultDsn             = ""
+	defaultHashKey         = ""
 )
 
+// LoadConfig загружает конфигурацию сервера из флагов командной строки и переменных окружения.
 func LoadConfig() (*ServerConfig, error) {
-
-	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(&flagStoreInt, "i", "300", "interval to store data")
-	flag.StringVar(&flagStorePath, "f", "/tmp/metrics-db.json", "storage path")
-	flag.BoolVar(&flagRestore, "r", true, "load saved data from storage")
-	flag.StringVar(&flagDB, "d", "", "database address")
-	flag.StringVar(&flagKey, "k", "", "sign key")
-	// парсим переданные серверу аргументы в зарегистрированные переменные
-	flag.Parse()
-
-	if envKey := os.Getenv("KEY"); envKey != "" {
-		flagKey = envKey
-	}
-	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		flagRunAddr = envRunAddr
-	}
-	if envStoreInt := os.Getenv("STORE_INTERVAL"); envStoreInt != "" {
-		flagStoreInt = envStoreInt
-	}
-	if envStorePath := os.Getenv("FILE_STORAGE_PATH"); envStorePath != "" {
-		flagStorePath = envStorePath
-	}
-	if envRestore := os.Getenv("RESTORE"); envRestore != "" {
-		boolValue, err := strconv.ParseBool(envRestore)
-		if err != nil {
-			return nil, fmt.Errorf("cannot parse Restore to bool: %w", err)
-		}
-		flagRestore = boolValue
-	}
-	if envDataBase := os.Getenv("DATABASE_DSN"); envDataBase != "" {
-		flagDB = envDataBase
-	} else {
-		os.Setenv("DATABASE_DSN", flagDB)
-	}
-
-	storeInterval, err := time.ParseDuration(fmt.Sprintf("%ss", flagStoreInt))
+	cfg := &ServerConfig{}
+	err := cfg.configureFlags()
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse StoreInterval to Duration: %w", err)
+		return nil, err
 	}
-
-	cfg := &ServerConfig{
-		ServerAddress:   flagRunAddr,
-		StoreInterval:   storeInterval,
-		FileStoragePath: flagStorePath,
-		Restore:         flagRestore,
-		Dsn:             flagDB,
-		HashKey:         flagKey,
+	err = cfg.configureEnvVars()
+	if err != nil {
+		return nil, err
 	}
-
 	return cfg, nil
 }
 
-func (c *ServerConfig) GetConfig() *ServerConfig {
-	return c
+// configureFlags настраивает флаги командной строки для конфигурации.
+func (c *ServerConfig) configureFlags() error {
+	// Задаем флаги и их значения по умолчанию.
+	flag.StringVar(&c.serverAddress, "a", defaultServerAddress, "address and port to run server")
+	flag.StringVar(&c.fileStoragePath, "f", defaultFileStoragePath, "storage path")
+	flag.BoolVar(&c.restore, "r", defaultRestore, "load saved data from storage")
+	flag.StringVar(&c.dsn, "d", defaultDsn, "database address")
+	flag.StringVar(&c.hashKey, "k", defaultHashKey, "sign key")
+	storeIntervalStr := flag.String("i", defaultInterval.String(), "interval to store data")
+	// Разбираем флаги командной строки.
+	flag.Parse()
+	// Парсим строковое значение интервала и устанавливаем его в StoreInterval.
+	duration, err := parseDuration(*storeIntervalStr)
+	if err != nil {
+		return err
+	}
+	c.storeInterval = duration
+	return nil
+}
+
+// configureEnvVars настраивает конфигурацию из переменных окружения.
+func (c *ServerConfig) configureEnvVars() error {
+	if envKey := os.Getenv("KEY"); envKey != "" {
+		c.hashKey = envKey
+	}
+	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
+		c.serverAddress = envRunAddr
+	}
+	if envStoreInt := os.Getenv("STORE_INTERVAL"); envStoreInt != "" {
+		duration, err := parseDuration(envStoreInt)
+		if err != nil {
+			return err
+		}
+		c.storeInterval = duration
+	}
+	if envStorePath := os.Getenv("FILE_STORAGE_PATH"); envStorePath != "" {
+		c.fileStoragePath = envStorePath
+	}
+	if envRestore := os.Getenv("RESTORE"); envRestore != "" {
+		boolValue, err := parseBool(envRestore)
+		if err != nil {
+			return err
+		}
+		c.restore = boolValue
+	}
+	if envDataBase := os.Getenv("DATABASE_DSN"); envDataBase != "" {
+		c.dsn = envDataBase
+	}
+	return nil
+}
+
+// parseDuration разбирает строку и возвращает длительность времени.
+func parseDuration(value string) (time.Duration, error) {
+	if _, err := strconv.Atoi(value); err == nil {
+		value = fmt.Sprintf("%ss", value)
+	}
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return defaultInterval, fmt.Errorf("cannot parse interval to Duration: %w", err)
+	}
+	return duration, nil
+}
+
+// parseBool разбирает строку и возвращает булево значение.
+func parseBool(value string) (bool, error) {
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultRestore, fmt.Errorf("cannot parse value to bool: %w", err)
+	}
+	return boolValue, nil
+}
+
+// GetDsn возвращает адрес базы данных.
+func (c *ServerConfig) GetDsn() string {
+	return c.dsn
+}
+
+// GetServerAddress возвращает адрес сервера.
+func (c *ServerConfig) GetServerAddress() string {
+	return c.serverAddress
+}
+
+// GetStoreInterval возвращает интервал сохранения данных.
+func (c *ServerConfig) GetStoreInterval() time.Duration {
+	return c.storeInterval
+}
+
+// GetFileStoragePath возвращает адрес куда сохраняются данные.
+func (c *ServerConfig) GetFileStoragePath() string {
+	return c.fileStoragePath
+}
+
+// GetRestore возвращает флаг, указывающий, следует ли восстанавливать сохраненные данные.
+func (c *ServerConfig) GetRestore() bool {
+	return c.restore
+}
+
+// GetHashKey возвращает ключ для подписи данных.
+func (c *ServerConfig) GetHashKey() string {
+	return c.hashKey
 }

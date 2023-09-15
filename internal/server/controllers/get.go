@@ -86,7 +86,7 @@ func (c *ControllerContext) getValueJSON(writer http.ResponseWriter, request *ht
 }
 
 func (c *ControllerContext) ping(writer http.ResponseWriter, request *http.Request) {
-	db, err := sql.Open("pgx", c.cfg.Dsn)
+	db, err := sql.Open("pgx", c.cfg.GetDsn())
 	if err != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		return

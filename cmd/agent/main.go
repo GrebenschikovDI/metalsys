@@ -45,10 +45,10 @@ func main() {
 	if err != nil {
 		logger.Log.Info("Error loading config", zap.Error(err))
 	}
-	pollInterval := cfg.PollInterval
-	reportInterval := cfg.ReportInterval
+	pollInterval := cfg.GetPollInterval()
+	reportInterval := cfg.GetReportInterval()
 
-	server := cfg.ServerAddress
+	server := cfg.GetServerAddress()
 	storage := make(map[string]models.Metric)
 	var counter int64
 

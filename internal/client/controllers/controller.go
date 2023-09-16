@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/config"
@@ -56,9 +57,7 @@ func SendJSON(storage map[string]models.Metric, cfg config.AgentConfig) {
 			return
 		}
 
-		ctx := context.WithValue(context.Background(), "hashKey", key)
-
-		response, err := sendRequest(ctx, url, compressedData)
+		response, err := sendRequest(url, key, compressedData)
 		if err != nil {
 			fmt.Println("Ошибка при отправке запроса:", err)
 			return
@@ -92,9 +91,9 @@ func SendSlice(storage map[string]models.Metric, cfg config.AgentConfig) {
 		return
 	}
 
-	ctx := context.WithValue(context.Background(), "hashKey", key)
+	ctx := context.Background()
 
-	response, err := SendWithRetry(ctx, url, compressedData, 3)
+	response, err := SendWithRetry(ctx, url, key, compressedData, 3)
 	if err != nil {
 		fmt.Println("Ошибка при отправке запроса:", err)
 		return
@@ -122,7 +121,7 @@ func compressData(data interface{}) ([]byte, error) {
 	return compressedData.Bytes(), nil
 }
 
-func sendRequest(ctx context.Context, url string, requestData []byte) (*http.Response, error) {
+func sendRequest(url, key string, requestData []byte) (*http.Response, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(requestData))
 	if err != nil {
@@ -130,15 +129,16 @@ func sendRequest(ctx context.Context, url string, requestData []byte) (*http.Res
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
-	key, ok := ctx.Value("hashKey").(string)
-	if ok && key != "" {
-		request.Header.Set("HashSHA256", hash.Sign(requestData, key))
+	if key != "" {
+		hashSum := hash.Sign(requestData, key)
+		hashStr := hex.EncodeToString(hashSum)
+		request.Header.Set("HashSHA256", hashStr)
 	}
 	return client.Do(request)
 }
 
-func SendWithRetry(ctx context.Context, url string, requestData []byte, retries int) (*http.Response, error) {
+func SendWithRetry(ctx context.Context, url, key string, requestData []byte, retries int) (*http.Response, error) {
 	return retry.Retry(ctx, func() (*http.Response, error) {
-		return sendRequest(ctx, url, requestData)
+		return sendRequest(url, key, requestData)
 	}, retries)
 }

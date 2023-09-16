@@ -11,11 +11,9 @@ import (
 func MetricsRouter(ctx *ControllerContext) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
+	r.Use(hash.ValidateHash(ctx.cfg.GetHashKey()))
 	r.Use(compression.GzipMiddleware)
 	r.Use(middleware.Recoverer)
-	if ctx.cfg.GetHashKey() != "" {
-		r.Use(hash.ValidateHash(ctx.cfg.GetHashKey()))
-	}
 	r.Get("/", ctx.getRoot)
 	r.Get("/value/{type}/{name}", ctx.getValue)
 	r.Get("/ping", ctx.ping)

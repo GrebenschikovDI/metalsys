@@ -7,6 +7,7 @@ import (
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"go.uber.org/zap"
+	"sync"
 	"time"
 )
 
@@ -50,22 +51,27 @@ func main() {
 
 	storage := make(map[string]models.Metric)
 	var counter int64
+	var m sync.RWMutex
 
 	go func() {
 		for {
+			m.Lock()
 			core.GetRuntimeMetrics(metricNames, storage)
 			counter += 1
 			storage["PollCount"] = core.GetPollCount(counter)
 			storage["RandomValue"] = core.GetRandomValue()
+			m.Unlock()
 			time.Sleep(pollInterval)
 		}
 	}()
 
 	go func() {
 		for {
-			controllers.Send(storage, *cfg)
+			//controllers.Send(storage, *cfg)
 			//controllers.SendJSON(storage, *cfg)
-			//controllers.SendSlice(storage, *cfg)
+			m.RLock()
+			controllers.SendSlice(storage, *cfg)
+			m.RUnlock()
 			time.Sleep(reportInterval)
 		}
 	}()

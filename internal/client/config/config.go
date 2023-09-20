@@ -14,6 +14,7 @@ type AgentConfig struct {
 	reportInterval time.Duration // Интервал с которым отправляются данные.
 	pollInterval   time.Duration // Интервал с которым собираются данные.
 	hashKey        string        // Ключ для подписи данных.
+	rateLimit      int           //Количетво одноаременно исходящих запросов на сервер.
 }
 
 // Константы с значениями по умолчанию.
@@ -22,6 +23,7 @@ const (
 	defaultReportInterval = 10 * time.Second
 	defaultPollInterval   = 2 * time.Second
 	defaultHashKey        = ""
+	defaultRateLimit      = 0
 )
 
 // LoadConfig загружает конфигурацию агента из флагов командной строки и переменных окружения.
@@ -44,6 +46,7 @@ func (c *AgentConfig) configureFlags() error {
 	serverAddress := flag.String("a", defaultServerAddress, "address and port to run server")
 	reportInterval := flag.String("r", defaultReportInterval.String(), "interval to send metrics")
 	pollInterval := flag.String("p", defaultPollInterval.String(), "interval to update metrics")
+	flag.IntVar(&c.rateLimit, "l", defaultRateLimit, "requests limit")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 	c.serverAddress = fmt.Sprintf("http://%s/", *serverAddress)
@@ -82,6 +85,13 @@ func (c *AgentConfig) configureEnvVars() error {
 		}
 		c.pollInterval = duration
 	}
+	if envRateLimit := os.Getenv("RATE_LIMIT"); envRateLimit != "" {
+		rateLimit, err := strconv.Atoi(envRateLimit)
+		if err != nil {
+			return err
+		}
+		c.rateLimit = rateLimit
+	}
 	return nil
 }
 
@@ -115,4 +125,9 @@ func (c *AgentConfig) GetPollInterval() time.Duration {
 // GetHashKey возвращает ключ для подписи данных.
 func (c *AgentConfig) GetHashKey() string {
 	return c.hashKey
+}
+
+// GetRateLimit возвращает количество исходящих запросов
+func (c *AgentConfig) GetRateLimit() int {
+	return c.rateLimit
 }

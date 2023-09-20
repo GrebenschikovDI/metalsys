@@ -48,33 +48,28 @@ func main() {
 	}
 	pollInterval := cfg.GetPollInterval()
 	reportInterval := cfg.GetReportInterval()
+	rateLimit := cfg.GetRateLimit()
 
-	storage := make(map[string]models.Metric)
+	storageChan := make(chan map[string]models.Metric)
 	var counter int64
-	var m sync.RWMutex
+	var wg sync.WaitGroup
 
-	go func() {
-		for {
-			m.Lock()
-			core.GetRuntimeMetrics(metricNames, storage)
-			counter += 1
-			storage["PollCount"] = core.GetPollCount(counter)
-			storage["RandomValue"] = core.GetRandomValue()
-			m.Unlock()
-			time.Sleep(pollInterval)
-		}
-	}()
+	for i := 0; i <= rateLimit; i++ {
+		wg.Add(1)
+		go sendMetricsWorker(storageChan, *cfg, &wg, reportInterval)
+	}
 
-	go func() {
-		for {
-			//controllers.Send(storage, *cfg)
-			//controllers.SendJSON(storage, *cfg)
-			m.RLock()
-			controllers.SendSlice(storage, *cfg)
-			m.RUnlock()
-			time.Sleep(reportInterval)
-		}
-	}()
+	go core.CollectMetrics(storageChan, pollInterval, counter)
 
-	select {}
+	go core.CollectPsutils(storageChan, pollInterval)
+
+	wg.Wait()
+}
+
+func sendMetricsWorker(ch <-chan map[string]models.Metric, cfg config.AgentConfig, wg *sync.WaitGroup, t time.Duration) {
+	defer wg.Done()
+	for metrics := range ch {
+		controllers.SendSlice(metrics, cfg)
+		time.Sleep(t)
+	}
 }

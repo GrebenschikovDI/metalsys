@@ -9,7 +9,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"html/template"
 	"net/http"
-	"os"
 	"strconv"
 )
 
@@ -86,8 +85,8 @@ func (c *ControllerContext) getValueJSON(writer http.ResponseWriter, request *ht
 	}
 }
 
-func ping(writer http.ResponseWriter, request *http.Request) {
-	db, err := sql.Open("pgx", os.Getenv("DATABASE_DSN"))
+func (c *ControllerContext) ping(writer http.ResponseWriter, request *http.Request) {
+	db, err := sql.Open("pgx", c.cfg.GetDsn())
 	if err != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		return

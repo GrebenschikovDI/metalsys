@@ -17,7 +17,7 @@ func ValidateHash(key string) func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Header.Get("HashSHA256") == "" {
-				http.Error(w, "Пустой заголовок HashSHA256", http.StatusBadRequest)
+				next.ServeHTTP(w, r)
 				return
 			}
 

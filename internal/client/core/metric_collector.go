@@ -2,7 +2,9 @@ package core
 
 import (
 	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"go.uber.org/zap"
 	"math/rand"
 	"reflect"
 	"runtime"
@@ -47,6 +49,10 @@ func CollectMetrics(metricChan chan<- map[string]models.Metric, interval time.Du
 		ac := atomic.AddInt64(&counter, 1)
 		storage["PollCount"] = getPollCount(ac)
 		storage["RandomValue"] = getRandomValue()
+		err := getPsutilsMetrics(storage)
+		if err != nil {
+			logger.Log.Info("Error collecting metrics", zap.Error(err))
+		}
 		metricChan <- storage
 		time.Sleep(interval)
 	}

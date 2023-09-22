@@ -16,12 +16,12 @@ type hashResponseWriter struct {
 func ValidateHash(key string) func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if key == "" || r.Header.Get("HashSHA256") == "" {
+			if key == "" {
 				next.ServeHTTP(w, r)
 				return
 			}
 			if r.Header.Get("HashSHA256") == "" {
-				next.ServeHTTP(w, r)
+				http.Error(w, "Пустой заголовок HashSHA256", http.StatusBadRequest)
 				return
 			}
 
@@ -33,7 +33,7 @@ func ValidateHash(key string) func(handler http.Handler) http.Handler {
 			bodyHash := Sign(body, key)
 			headerHash, err := hex.DecodeString(r.Header.Get("HashSHA256"))
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			if !hmac.Equal(headerHash, bodyHash) {

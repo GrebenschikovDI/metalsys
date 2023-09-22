@@ -16,6 +16,7 @@ type ServerConfig struct {
 	restore         bool          // Флаг, указывающий, следует ли восстанавливать сохраненные данные.
 	dsn             string        // Адрес базы данных.
 	hashKey         string        // Ключ для подписи данных.
+	hasKey          bool
 }
 
 // Константы с значениями по умолчанию.
@@ -59,6 +60,11 @@ func (c *ServerConfig) configureFlags() error {
 		return err
 	}
 	c.storeInterval = duration
+	if c.hashKey != "" {
+		c.hasKey = true
+	} else {
+		c.hasKey = false
+	}
 	return nil
 }
 
@@ -142,4 +148,9 @@ func (c *ServerConfig) GetRestore() bool {
 // GetHashKey возвращает ключ для подписи данных.
 func (c *ServerConfig) GetHashKey() string {
 	return c.hashKey
+}
+
+// HasKey возращает true если ключ присутсвует
+func (c *ServerConfig) HasKey() bool {
+	return c.hasKey
 }

@@ -2,14 +2,64 @@ package core
 
 import (
 	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"go.uber.org/zap"
 	"math/rand"
 	"reflect"
 	"runtime"
+	"sync/atomic"
+	"time"
 )
 
+var metricNames = []string{
+	"Alloc",
+	"BuckHashSys",
+	"Frees",
+	"GCCPUFraction",
+	"GCSys",
+	"HeapAlloc",
+	"HeapIdle",
+	"HeapInuse",
+	"HeapObjects",
+	"HeapReleased",
+	"HeapSys",
+	"LastGC",
+	"Lookups",
+	"MCacheInuse",
+	"MCacheSys",
+	"MSpanInuse",
+	"MSpanSys",
+	"Mallocs",
+	"NextGC",
+	"NumForcedGC",
+	"NumGC",
+	"OtherSys",
+	"PauseTotalNs",
+	"StackInuse",
+	"StackSys",
+	"Sys",
+	"TotalAlloc",
+}
+
+func CollectMetrics(metricChan chan<- map[string]models.Metric, interval time.Duration, counter int64) {
+	for {
+		storage := make(map[string]models.Metric)
+		getRuntimeMetrics(metricNames, storage)
+		ac := atomic.AddInt64(&counter, 1)
+		storage["PollCount"] = getPollCount(ac)
+		storage["RandomValue"] = getRandomValue()
+		err := getPsutilsMetrics(storage)
+		if err != nil {
+			logger.Log.Info("Error collecting metrics", zap.Error(err))
+		}
+		metricChan <- storage
+		time.Sleep(interval)
+	}
+}
+
 // GetRuntimeMetrics - собирает метрики из пакета runtime, по списку имен
-func GetRuntimeMetrics(metricNames []string, storage map[string]models.Metric) {
+func getRuntimeMetrics(metricNames []string, storage map[string]models.Metric) {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
@@ -39,7 +89,7 @@ func GetRuntimeMetrics(metricNames []string, storage map[string]models.Metric) {
 }
 
 // GetPollCount - увеличивает PollCount на 1
-func GetPollCount(counter int64) models.Metric {
+func getPollCount(counter int64) models.Metric {
 	metric := models.Metric{
 		ID:    "PollCount",
 		Mtype: "counter",
@@ -50,7 +100,7 @@ func GetPollCount(counter int64) models.Metric {
 }
 
 // GetRandomValue - добавляет случайное значение
-func GetRandomValue() models.Metric {
+func getRandomValue() models.Metric {
 	randomFloat := rand.Float64()
 	metric := models.Metric{
 		ID:    "RandomValue",

@@ -4,15 +4,19 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/GrebenschikovDI/metalsys.git/internal/client/config"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/hash"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/retry"
 	"net/http"
 	"time"
 )
 
-func Send(metrics map[string]models.Metric, server string) {
+func Send(metrics map[string]models.Metric, cfg config.AgentConfig) {
+	server := cfg.GetServerAddress()
 	client := &http.Client{Timeout: 10 * time.Second}
 	var url string
 	for _, metric := range metrics {
@@ -41,7 +45,9 @@ func Send(metrics map[string]models.Metric, server string) {
 	}
 }
 
-func SendJSON(storage map[string]models.Metric, server string) {
+func SendJSON(storage map[string]models.Metric, cfg config.AgentConfig) {
+	server := cfg.GetServerAddress()
+	key := cfg.GetHashKey()
 	url := fmt.Sprintf("%supdate/", server)
 
 	for _, metric := range storage {
@@ -51,7 +57,7 @@ func SendJSON(storage map[string]models.Metric, server string) {
 			return
 		}
 
-		response, err := sendRequest(url, compressedData)
+		response, err := sendRequest(url, key, compressedData)
 		if err != nil {
 			fmt.Println("Ошибка при отправке запроса:", err)
 			return
@@ -64,7 +70,9 @@ func SendJSON(storage map[string]models.Metric, server string) {
 	}
 }
 
-func SendSlice(storage map[string]models.Metric, server string) {
+func SendSlice(storage map[string]models.Metric, cfg config.AgentConfig) {
+	server := cfg.GetServerAddress()
+	key := cfg.GetHashKey()
 	var metrics []models.Metric
 
 	url := fmt.Sprintf("%supdates/", server)
@@ -83,7 +91,9 @@ func SendSlice(storage map[string]models.Metric, server string) {
 		return
 	}
 
-	response, err := SendWithRetry(context.Background(), url, compressedData, 3)
+	ctx := context.Background()
+
+	response, err := SendWithRetry(ctx, url, key, compressedData, 3)
 	if err != nil {
 		fmt.Println("Ошибка при отправке запроса:", err)
 		return
@@ -111,7 +121,7 @@ func compressData(data interface{}) ([]byte, error) {
 	return compressedData.Bytes(), nil
 }
 
-func sendRequest(url string, requestData []byte) (*http.Response, error) {
+func sendRequest(url, key string, requestData []byte) (*http.Response, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(requestData))
 	if err != nil {
@@ -119,11 +129,16 @@ func sendRequest(url string, requestData []byte) (*http.Response, error) {
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
+	if key != "" {
+		hashSum := hash.Sign(requestData, key)
+		hashStr := hex.EncodeToString(hashSum)
+		request.Header.Set("HashSHA256", hashStr)
+	}
 	return client.Do(request)
 }
 
-func SendWithRetry(ctx context.Context, url string, requestData []byte, retries int) (*http.Response, error) {
+func SendWithRetry(ctx context.Context, url, key string, requestData []byte, retries int) (*http.Response, error) {
 	return retry.Retry(ctx, func() (*http.Response, error) {
-		return sendRequest(url, requestData)
+		return sendRequest(url, key, requestData)
 	}, retries)
 }

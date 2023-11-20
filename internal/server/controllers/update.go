@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
+
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"github.com/go-chi/chi/v5"
 )
 
 func (c *ControllerContext) update(writer http.ResponseWriter, request *http.Request) {

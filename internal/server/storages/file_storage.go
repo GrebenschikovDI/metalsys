@@ -3,9 +3,10 @@ package storages
 import (
 	"context"
 	"encoding/json"
+	"os"
+
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/repository"
-	"os"
 )
 
 func SaveMetrics(path string, storage repository.Repository) error {

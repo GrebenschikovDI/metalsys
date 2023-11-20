@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/config"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/core"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"go.uber.org/zap"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 )
 
 func main() {

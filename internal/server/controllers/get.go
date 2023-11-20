@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
-	"github.com/go-chi/chi/v5"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"html/template"
 	"net/http"
 	"strconv"
+
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"github.com/go-chi/chi/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func (c *ControllerContext) getRoot(writer http.ResponseWriter, request *http.Request) {

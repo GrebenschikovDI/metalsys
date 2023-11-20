@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/repository"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/config"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/storages"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 const dirPath = "sql/migrations"

@@ -1,12 +1,13 @@
 package core
 
 import (
+	"time"
+
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"go.uber.org/zap"
-	"time"
 )
 
 const (

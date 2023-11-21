@@ -4,14 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
+	"time"
+
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/repository"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/config"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/storages"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 const dirPath = "sql/migrations"
@@ -49,6 +51,14 @@ func main() {
 		}
 	}()
 
+	go func() {
+		pprofRouter := controllers.PprofRouter()
+		err := http.ListenAndServe(":9091", pprofRouter)
+		if err != nil {
+			logger.Log.Fatal("Error with profiler")
+		}
+	}()
+
 	if err := run(storage, *cfg); err != nil {
 		panic(err)
 	}
@@ -78,3 +88,5 @@ func run(storage repository.Repository, cfg config.ServerConfig) error {
 
 	return nil
 }
+
+// sync pool for gzip writer

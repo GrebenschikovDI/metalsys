@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"time"
 
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
@@ -50,6 +51,14 @@ func main() {
 		}
 	}()
 
+	go func() {
+		pprofRouter := controllers.PprofRouter()
+		err := http.ListenAndServe(":9091", pprofRouter)
+		if err != nil {
+			logger.Log.Fatal("Error with profiler")
+		}
+	}()
+
 	if err := run(storage, *cfg); err != nil {
 		panic(err)
 	}
@@ -79,3 +88,5 @@ func run(storage repository.Repository, cfg config.ServerConfig) error {
 
 	return nil
 }
+
+// sync pool for gzip writer

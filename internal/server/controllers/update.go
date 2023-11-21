@@ -9,6 +9,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// update handles requests to update a single metric value.
+// It extracts the metric type, name, and value from URL parameters,
+// creates a metric object, and adds or updates it in the storage.
+// It responds with appropriate HTTP status codes based on the request processing result.
 func (c *ControllerContext) update(writer http.ResponseWriter, request *http.Request) {
 	metricType := chi.URLParam(request, "type")
 	metricName := chi.URLParam(request, "name")
@@ -50,6 +54,10 @@ func (c *ControllerContext) update(writer http.ResponseWriter, request *http.Req
 	writer.WriteHeader(http.StatusOK)
 }
 
+// updateJSON handles requests with JSON payloads to update a single metric value.
+// It decodes the JSON body to a metric object and adds or updates it in the storage.
+// It responds with the updated metric in JSON format or appropriate HTTP status codes
+// based on the request processing result.
 func (c *ControllerContext) updateJSON(writer http.ResponseWriter, request *http.Request) {
 	var metric models.Metric
 	dec := json.NewDecoder(request.Body)
@@ -67,6 +75,9 @@ func (c *ControllerContext) updateJSON(writer http.ResponseWriter, request *http
 	}
 }
 
+// updates handles batch update requests for multiple metrics through a JSON payload.
+// It decodes the JSON body to an array of metric objects and adds or updates them
+// in the storage. It responds with an HTTP OK status on successful processing.
 func (c *ControllerContext) updates(writer http.ResponseWriter, request *http.Request) {
 	var metrics []models.Metric
 	dec := json.NewDecoder(request.Body)

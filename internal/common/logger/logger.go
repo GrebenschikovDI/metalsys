@@ -28,14 +28,8 @@ func Initialize(level string) error {
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		responseData := &responseData{
-			status: 0,
-			size:   0,
-		}
-		loggingResponseWriter := loggingResponseWriter{
-			ResponseWriter: w,
-			responseData:   *responseData,
-		}
+
+		loggingResponseWriter := &loggingResponseWriter{ResponseWriter: w}
 
 		defer func() {
 			duration := time.Since(start)
@@ -43,11 +37,11 @@ func RequestLogger(next http.Handler) http.Handler {
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
 				zap.Duration("duration", duration),
-				zap.Int("status", responseData.status),
-				zap.Int("size", responseData.size),
+				zap.Int("status", loggingResponseWriter.responseData.status),
+				zap.Int("size", loggingResponseWriter.responseData.size),
 			)
 		}()
 
-		next.ServeHTTP(&loggingResponseWriter, r)
+		next.ServeHTTP(loggingResponseWriter, r)
 	})
 }

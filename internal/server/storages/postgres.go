@@ -15,11 +15,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// PgStorage represents a PostgreSQL storage implementation.
 type PgStorage struct {
 	db      *sql.DB
 	connStr string
 }
 
+// InitDB initializes a new database connection using the provided connection
+// string and runs migrations located at the specified directory path.
 func InitDB(_ context.Context, connStr, dirPath string) (*PgStorage, error) {
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
@@ -36,6 +39,7 @@ func InitDB(_ context.Context, connStr, dirPath string) (*PgStorage, error) {
 	return storage, nil
 }
 
+// runMigrations applies database migrations from the given directory path.
 func (s *PgStorage) runMigrations(connStr, dirPath string) error {
 	m, err := migrate.New(fmt.Sprintf("file://%s", dirPath), connStr)
 	if err != nil {
@@ -47,6 +51,7 @@ func (s *PgStorage) runMigrations(connStr, dirPath string) error {
 	return nil
 }
 
+// CreateMetricsTable creates the 'metrics' table in the database if it doesn't exist.
 func (s *PgStorage) CreateMetricsTable() error {
 	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS metrics (
@@ -59,6 +64,8 @@ func (s *PgStorage) CreateMetricsTable() error {
 	return err
 }
 
+// AddMetric inserts a single metric into the database.
+// If a metric with the same ID already exists, it updates the existing record.
 func (s *PgStorage) AddMetric(ctx context.Context, mc models.Metric) error {
 	query := `
 		INSERT INTO metrics (id, mtype, delta, value)
@@ -70,6 +77,9 @@ func (s *PgStorage) AddMetric(ctx context.Context, mc models.Metric) error {
 	return err
 }
 
+// AddMetrics performs a batch insert of multiple metrics into the database.
+// Similar to AddMetric, it updates the metrics if they already exist.
+// The operation is performed within a transaction.
 func (s *PgStorage) AddMetrics(ctx context.Context, metrics []models.Metric) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -98,6 +108,7 @@ func (s *PgStorage) AddMetrics(ctx context.Context, metrics []models.Metric) err
 	return nil
 }
 
+// GetMetric retrieves a single metric by its ID from the database.
 func (s *PgStorage) GetMetric(ctx context.Context, name string) (value models.Metric, err error) {
 	row := s.db.QueryRowContext(ctx, "SELECT id, mtype, delta, value FROM metrics WHERE id = $1", name)
 
@@ -110,6 +121,7 @@ func (s *PgStorage) GetMetric(ctx context.Context, name string) (value models.Me
 	return value, err
 }
 
+// GetMetrics fetches all metrics from the database.
 func (s *PgStorage) GetMetrics(ctx context.Context) ([]models.Metric, error) {
 	rows, err := s.db.QueryContext(ctx, "SELECT id, mtype, delta, value FROM metrics")
 	if err != nil {

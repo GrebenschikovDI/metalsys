@@ -24,12 +24,11 @@ func ExampleMetricsRouter() {
 	if err != nil {
 		panic(err)
 	}
-
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
-
+	defer resp.Body.Close()
 	fmt.Println("Status Code:", resp.StatusCode)
 
 	getReq, err := http.NewRequest("GET", server.URL+"/value/gauge/temp", nil)
@@ -40,6 +39,7 @@ func ExampleMetricsRouter() {
 	if err != nil {
 		panic(err)
 	}
+	defer getResp.Body.Close()
 	fmt.Println("Get Status Code:", getResp.StatusCode)
 
 	// Output:

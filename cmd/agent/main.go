@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -16,6 +17,18 @@ import (
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"go.uber.org/zap"
 )
+
+var (
+	Version = "N/A"
+	Date    = "N/A"
+	Commit  = "N/A"
+)
+
+func printBuildInfo() {
+	fmt.Printf("Build version: %s\n", Version)
+	fmt.Printf("Build date: %s\n", Date)
+	fmt.Printf("Build commit: %s\n", Commit)
+}
 
 func main() {
 	cfg, err := config.LoadConfig()

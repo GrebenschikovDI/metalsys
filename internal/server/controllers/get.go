@@ -4,14 +4,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
-	"github.com/go-chi/chi/v5"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"html/template"
 	"net/http"
 	"strconv"
+
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"github.com/go-chi/chi/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// getRoot handles the requests to the root endpoint of the server.
+// It retrieves a list of all metrics from the storage and displays them in HTML format.
 func (c *ControllerContext) getRoot(writer http.ResponseWriter, request *http.Request) {
 	metrics, err := c.storage.GetMetrics(request.Context())
 	if err != nil {
@@ -37,6 +40,9 @@ func (c *ControllerContext) getRoot(writer http.ResponseWriter, request *http.Re
 	}
 }
 
+// getValue handles requests to retrieve the value of a specific metric.
+// It expects the metric type and name as URL parameters and returns
+// the value of the metric in plain text format.
 func (c *ControllerContext) getValue(writer http.ResponseWriter, request *http.Request) {
 	metricType := chi.URLParam(request, "type")
 	metricName := chi.URLParam(request, "name")
@@ -60,6 +66,9 @@ func (c *ControllerContext) getValue(writer http.ResponseWriter, request *http.R
 	writer.Write([]byte(answer))
 }
 
+// getValueJSON handles JSON formatted requests to retrieve a specific metric.
+// It expects a JSON body with metric details, retrieves the metric value,
+// and responds with the metric value in JSON format.
 func (c *ControllerContext) getValueJSON(writer http.ResponseWriter, request *http.Request) {
 	var metric models.Metric
 	dec := json.NewDecoder(request.Body)
@@ -85,6 +94,9 @@ func (c *ControllerContext) getValueJSON(writer http.ResponseWriter, request *ht
 	}
 }
 
+// ping handles requests to check the database connection.
+// It attempts to open a new database connection and pings the database.
+// If successful, it returns an HTTP 200 OK status.
 func (c *ControllerContext) ping(writer http.ResponseWriter, request *http.Request) {
 	db, err := sql.Open("pgx", c.cfg.GetDsn())
 	if err != nil {

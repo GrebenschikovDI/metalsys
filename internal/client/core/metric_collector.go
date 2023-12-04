@@ -2,14 +2,15 @@ package core
 
 import (
 	"fmt"
-	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
-	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
-	"go.uber.org/zap"
 	"math/rand"
 	"reflect"
 	"runtime"
 	"sync/atomic"
 	"time"
+
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
+	"go.uber.org/zap"
 )
 
 var metricNames = []string{

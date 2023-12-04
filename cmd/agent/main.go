@@ -2,18 +2,33 @@ package main
 
 import (
 	"context"
+	"fmt"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/config"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/core"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"go.uber.org/zap"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 )
+
+var (
+	Version = "N/A"
+	Date    = "N/A"
+	Commit  = "N/A"
+)
+
+func printBuildInfo() {
+	fmt.Printf("Build version: %s\n", Version)
+	fmt.Printf("Build date: %s\n", Date)
+	fmt.Printf("Build commit: %s\n", Commit)
+}
 
 func main() {
 	cfg, err := config.LoadConfig()

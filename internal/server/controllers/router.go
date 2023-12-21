@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/compression"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/crypto"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/hash"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/go-chi/chi/v5"
@@ -13,6 +14,7 @@ import (
 func MetricsRouter(ctx *ControllerContext) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
+	r.Use(crypto.DecryptMiddleware())
 	if ctx.cfg.HasKey() {
 		r.Use(hash.ValidateHash(ctx.cfg.GetHashKey()))
 	}

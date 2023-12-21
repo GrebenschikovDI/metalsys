@@ -15,6 +15,7 @@ type AgentConfig struct {
 	pollInterval   time.Duration // Интервал с которым собираются данные.
 	hashKey        string        // Ключ для подписи данных.
 	rateLimit      int           //Количетво одноаременно исходящих запросов на сервер.
+	cryptoKey      string        // Путь до публичного ключа
 }
 
 // Константы с значениями по умолчанию.
@@ -24,6 +25,7 @@ const (
 	defaultPollInterval   = 2 * time.Second
 	defaultHashKey        = ""
 	defaultRateLimit      = 0
+	defaultCryptoKey      = ""
 )
 
 // LoadConfig загружает конфигурацию агента из флагов командной строки и переменных окружения.
@@ -47,6 +49,7 @@ func (c *AgentConfig) configureFlags() error {
 	reportInterval := flag.String("r", defaultReportInterval.String(), "interval to send metrics")
 	pollInterval := flag.String("p", defaultPollInterval.String(), "interval to update metrics")
 	flag.IntVar(&c.rateLimit, "l", defaultRateLimit, "requests limit")
+	flag.StringVar(&c.cryptoKey, "crypto-key", defaultCryptoKey, "path to public key")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 	c.serverAddress = fmt.Sprintf("http://%s/", *serverAddress)
@@ -91,6 +94,9 @@ func (c *AgentConfig) configureEnvVars() error {
 			return err
 		}
 		c.rateLimit = rateLimit
+	}
+	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
+		c.cryptoKey = envCryptoKey
 	}
 	return nil
 }

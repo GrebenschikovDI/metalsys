@@ -16,6 +16,7 @@ type ServerConfig struct {
 	restore         bool          // Флаг, указывающий, следует ли восстанавливать сохраненные данные.
 	dsn             string        // Адрес базы данных.
 	hashKey         string        // Ключ для подписи данных.
+	cryptoKey       string
 }
 
 // Константы с значениями по умолчанию.
@@ -26,6 +27,7 @@ const (
 	defaultFileStoragePath = "/tmp/metrics-db.json"
 	defaultDsn             = ""
 	defaultHashKey         = ""
+	defaultCryptoKey       = ""
 )
 
 // LoadConfig загружает конфигурацию сервера из флагов командной строки и переменных окружения.
@@ -51,6 +53,7 @@ func (c *ServerConfig) configureFlags() error {
 	flag.StringVar(&c.dsn, "d", defaultDsn, "database address")
 	flag.StringVar(&c.hashKey, "k", defaultHashKey, "sign key")
 	storeIntervalStr := flag.String("i", defaultInterval.String(), "interval to store data")
+	flag.StringVar(&c.cryptoKey, "crypto-key", defaultCryptoKey, "path to public key")
 	// Разбираем флаги командной строки.
 	flag.Parse()
 	// Парсим строковое значение интервала и устанавливаем его в StoreInterval.
@@ -89,6 +92,9 @@ func (c *ServerConfig) configureEnvVars() error {
 	}
 	if envDataBase := os.Getenv("DATABASE_DSN"); envDataBase != "" {
 		c.dsn = envDataBase
+	}
+	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
+		c.cryptoKey = envCryptoKey
 	}
 	return nil
 }

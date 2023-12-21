@@ -102,5 +102,3 @@ func run(storage repository.Repository, cfg config.ServerConfig) error {
 
 	return nil
 }
-
-// sync pool for gzip writer

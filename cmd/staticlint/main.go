@@ -1,6 +1,7 @@
 // Package main is the entry point for staticlint command.
 //
 // To run the multichecker with custom analyzer:
+//
 //	go install ./cmd/staticlint
 //	staticlint ./your-package
 package main

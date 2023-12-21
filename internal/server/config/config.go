@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -17,6 +18,15 @@ type ServerConfig struct {
 	dsn             string        // Адрес базы данных.
 	hashKey         string        // Ключ для подписи данных.
 	cryptoKey       string
+}
+
+type FromFileConfig struct {
+	Address       string `json:"address"`
+	Restore       bool   `json:"restore"`
+	StoreInterval string `json:"store_interval"`
+	StoreFile     string `json:"store_file"`
+	DatabaseDsn   string `json:"database_dsn"`
+	CryptoKey     string `json:"crypto_key"`
 }
 
 // Константы с значениями по умолчанию.
@@ -46,6 +56,7 @@ func LoadConfig() (*ServerConfig, error) {
 
 // configureFlags настраивает флаги командной строки для конфигурации.
 func (c *ServerConfig) configureFlags() error {
+	configPath := flag.String("c", "", "config from file")
 	// Задаем флаги и их значения по умолчанию.
 	flag.StringVar(&c.serverAddress, "a", defaultServerAddress, "address and port to run server")
 	flag.StringVar(&c.fileStoragePath, "f", defaultFileStoragePath, "storage path")
@@ -56,6 +67,12 @@ func (c *ServerConfig) configureFlags() error {
 	flag.StringVar(&c.cryptoKey, "crypto-key", defaultCryptoKey, "path to public key")
 	// Разбираем флаги командной строки.
 	flag.Parse()
+	if configPath != nil {
+		err := c.readConfig(*configPath)
+		if err != nil {
+			return err
+		}
+	}
 	// Парсим строковое значение интервала и устанавливаем его в StoreInterval.
 	duration, err := parseDuration(*storeIntervalStr)
 	if err != nil {
@@ -118,6 +135,43 @@ func parseBool(value string) (bool, error) {
 		return defaultRestore, fmt.Errorf("cannot parse value to bool: %w", err)
 	}
 	return boolValue, nil
+}
+
+func (c *ServerConfig) readConfig(path string) error {
+	jsonConfig, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Println("Error reading JSON file:", err)
+		return err
+	}
+
+	var config FromFileConfig
+
+	err = json.Unmarshal(jsonConfig, &config)
+
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON file:", err)
+		return err
+	}
+
+	if config.Address != "" {
+		c.serverAddress = config.Address
+	}
+	if config.StoreInterval != "" {
+		c.storeInterval, err = parseDuration(config.StoreInterval)
+		if err != nil {
+			return err
+		}
+	}
+	if config.StoreFile != "" {
+		c.fileStoragePath = config.StoreFile
+	}
+	if config.DatabaseDsn != "" {
+		c.dsn = config.DatabaseDsn
+	}
+	if config.CryptoKey != "" {
+		c.cryptoKey = config.CryptoKey
+	}
+	return nil
 }
 
 // GetDsn возвращает адрес базы данных.

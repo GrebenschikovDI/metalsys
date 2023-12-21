@@ -138,6 +138,10 @@ func parseBool(value string) (bool, error) {
 }
 
 func (c *ServerConfig) readConfig(path string) error {
+	if path == "" {
+		return nil
+	}
+
 	jsonConfig, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Println("Error reading JSON file:", err)

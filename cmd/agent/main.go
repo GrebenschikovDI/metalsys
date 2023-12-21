@@ -47,22 +47,34 @@ func main() {
 
 	for i := 0; i <= rateLimit; i++ {
 		wg.Add(1)
-		go func() {
+		go func(ctx context.Context) {
 			defer wg.Done()
-			sendMetricsWorker(storageChan, *cfg)
-		}()
+			sendMetricsWorker(ctx, storageChan, *cfg)
+		}(ctx)
 	}
 
-	go core.CollectMetrics(storageChan, pollInterval, counter)
+	go func(ctx context.Context) {
+		core.CollectMetrics(ctx, storageChan, pollInterval, counter)
+	}(ctx)
 
 	<-ctx.Done()
-	close(storageChan)
+
 	wg.Wait()
+	close(storageChan)
 }
 
-func sendMetricsWorker(ch <-chan map[string]models.Metric, cfg config.AgentConfig) {
-	for metrics := range ch {
-		controllers.SendSlice(metrics, cfg)
-		time.Sleep(cfg.GetReportInterval())
+func sendMetricsWorker(ctx context.Context, ch <-chan map[string]models.Metric, cfg config.AgentConfig) {
+	for {
+		select {
+		case metrics, ok := <-ch:
+			if !ok {
+				return
+			}
+			controllers.SendSlice(metrics, cfg)
+			time.Sleep(cfg.GetReportInterval())
+		case <-ctx.Done():
+			return
+		}
+
 	}
 }

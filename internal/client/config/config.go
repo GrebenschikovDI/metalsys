@@ -117,6 +117,10 @@ func (c *AgentConfig) configureEnvVars() error {
 }
 
 func (c *AgentConfig) readConfig(path string) error {
+	if path == "" {
+		return nil
+	}
+
 	jsonConfig, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Println("Error reading JSON file:", err)

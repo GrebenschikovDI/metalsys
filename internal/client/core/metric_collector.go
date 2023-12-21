@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -43,19 +44,24 @@ var metricNames = []string{
 	"TotalAlloc",
 }
 
-func CollectMetrics(metricChan chan<- map[string]models.Metric, interval time.Duration, counter int64) {
+func CollectMetrics(ctx context.Context, metricChan chan<- map[string]models.Metric, interval time.Duration, counter int64) {
 	for {
-		storage := make(map[string]models.Metric)
-		getRuntimeMetrics(metricNames, storage)
-		ac := atomic.AddInt64(&counter, 1)
-		storage["PollCount"] = getPollCount(ac)
-		storage["RandomValue"] = getRandomValue()
-		err := getPsutilsMetrics(storage)
-		if err != nil {
-			logger.Log.Info("Error collecting metrics", zap.Error(err))
+		select {
+		case <-time.After(interval):
+			storage := make(map[string]models.Metric)
+			getRuntimeMetrics(metricNames, storage)
+			ac := atomic.AddInt64(&counter, 1)
+			storage["PollCount"] = getPollCount(ac)
+			storage["RandomValue"] = getRandomValue()
+			err := getPsutilsMetrics(storage)
+			if err != nil {
+				logger.Log.Info("Error collecting metrics", zap.Error(err))
+			}
+			metricChan <- storage
+		case <-ctx.Done():
+			return
 		}
-		metricChan <- storage
-		time.Sleep(interval)
+
 	}
 }
 

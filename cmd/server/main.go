@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
@@ -73,20 +76,29 @@ func main() {
 		}
 	}()
 
-	if err := run(storage, *cfg); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := run(ctx, storage, *cfg); err != nil {
 		panic(err)
 	}
 
-	select {}
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	cancel()
+
+	<-ctx.Done()
 }
 
-func run(storage repository.Repository, cfg config.ServerConfig) error {
+func run(ctx context.Context, storage repository.Repository, cfg config.ServerConfig) error {
 	if err := logger.Initialize("info"); err != nil {
 		return err
 	}
 
-	ctx := controllers.NewControllerContext(storage, cfg)
-	router := controllers.MetricsRouter(ctx)
+	ct := controllers.NewControllerContext(storage, cfg)
+	router := controllers.MetricsRouter(ct)
 	address := cfg.GetServerAddress()
 
 	server := &http.Server{
@@ -96,9 +108,32 @@ func run(storage repository.Repository, cfg config.ServerConfig) error {
 
 	logger.Log.Info("Running server", zap.String("address", address))
 
-	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		logger.Log.Fatal("Error within server init", zap.Error(err))
-	}
+	go func() {
+		// Ожидание сигнала завершения или ошибки при запуске сервера
+		select {
+		case <-ctx.Done():
+			// Отмена контекста
+			return
+		case err := <-runServer(server):
+			if !errors.Is(err, http.ErrServerClosed) {
+				// Если сервер завершился по причине ошибки, логгируем ее
+				logger.Log.Fatal("Error within server init", zap.Error(err))
+			}
+		}
+	}()
 
 	return nil
+}
+
+func runServer(server *http.Server) <-chan error {
+	errCh := make(chan error)
+	go func() {
+		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+		} else {
+			errCh <- nil
+		}
+		close(errCh)
+	}()
+	return errCh
 }

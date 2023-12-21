@@ -1,4 +1,5 @@
-//package core
+package core
+
 //
 //import (
 //	"testing"

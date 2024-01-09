@@ -18,6 +18,7 @@ type ServerConfig struct {
 	dsn             string        // Адрес базы данных.
 	hashKey         string        // Ключ для подписи данных.
 	cryptoKey       string
+	trustedSubnet   string
 }
 
 type FromFileConfig struct {
@@ -27,6 +28,7 @@ type FromFileConfig struct {
 	StoreFile     string `json:"store_file"`
 	DatabaseDsn   string `json:"database_dsn"`
 	CryptoKey     string `json:"crypto_key"`
+	TrustedSubnet string `json:"trusted_subnet"`
 }
 
 // Константы с значениями по умолчанию.
@@ -38,6 +40,7 @@ const (
 	defaultDsn             = ""
 	defaultHashKey         = ""
 	defaultCryptoKey       = ""
+	defaultTrustedSubnet   = ""
 )
 
 // LoadConfig загружает конфигурацию сервера из флагов командной строки и переменных окружения.
@@ -65,6 +68,7 @@ func (c *ServerConfig) configureFlags() error {
 	flag.StringVar(&c.hashKey, "k", defaultHashKey, "sign key")
 	storeIntervalStr := flag.String("i", defaultInterval.String(), "interval to store data")
 	flag.StringVar(&c.cryptoKey, "crypto-key", defaultCryptoKey, "path to public key")
+	flag.StringVar(&c.trustedSubnet, "t", defaultTrustedSubnet, "trusted subnet")
 	// Разбираем флаги командной строки.
 	flag.Parse()
 	if configPath != nil {
@@ -112,6 +116,9 @@ func (c *ServerConfig) configureEnvVars() error {
 	}
 	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
 		c.cryptoKey = envCryptoKey
+	}
+	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
+		c.trustedSubnet = envTrustedSubnet
 	}
 	return nil
 }
@@ -215,4 +222,8 @@ func (c *ServerConfig) HasKey() bool {
 	} else {
 		return true
 	}
+}
+
+func (c *ServerConfig) RealIp() string {
+	return c.trustedSubnet
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/crypto"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/hash"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
+	"github.com/GrebenschikovDI/metalsys.git/internal/common/subnet"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -15,6 +16,9 @@ func MetricsRouter(ctx *ControllerContext) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(crypto.DecryptMiddleware())
+	if ctx.cfg.RealIp() != "" {
+		r.Use(subnet.TrustedMiddleware(ctx.cfg.RealIp()))
+	}
 	if ctx.cfg.HasKey() {
 		r.Use(hash.ValidateHash(ctx.cfg.GetHashKey()))
 	}

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -15,6 +16,14 @@ type AgentConfig struct {
 	pollInterval   time.Duration // Интервал с которым собираются данные.
 	hashKey        string        // Ключ для подписи данных.
 	rateLimit      int           //Количетво одноаременно исходящих запросов на сервер.
+	cryptoKey      string        // Путь до публичного ключа
+}
+
+type FromFileConfig struct {
+	Address        string `json:"address"`
+	ReportInterval string `json:"store_interval"`
+	PollInterval   string `json:"poll_interval"`
+	CryptoKey      string `json:"crypto_key"`
 }
 
 // Константы с значениями по умолчанию.
@@ -24,6 +33,7 @@ const (
 	defaultPollInterval   = 2 * time.Second
 	defaultHashKey        = ""
 	defaultRateLimit      = 0
+	defaultCryptoKey      = ""
 )
 
 // LoadConfig загружает конфигурацию агента из флагов командной строки и переменных окружения.
@@ -42,13 +52,21 @@ func LoadConfig() (*AgentConfig, error) {
 
 // configureFlags настраивает флаги командной строки для конфигурации.
 func (c *AgentConfig) configureFlags() error {
+	configPath := flag.String("c", "", "config from file")
 	flag.StringVar(&c.hashKey, "k", defaultHashKey, "sign key")
 	serverAddress := flag.String("a", defaultServerAddress, "address and port to run server")
 	reportInterval := flag.String("r", defaultReportInterval.String(), "interval to send metrics")
 	pollInterval := flag.String("p", defaultPollInterval.String(), "interval to update metrics")
 	flag.IntVar(&c.rateLimit, "l", defaultRateLimit, "requests limit")
+	flag.StringVar(&c.cryptoKey, "crypto-key", defaultCryptoKey, "path to public key")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
+	if configPath != nil {
+		err := c.readConfig(*configPath)
+		if err != nil {
+			return err
+		}
+	}
 	c.serverAddress = fmt.Sprintf("http://%s/", *serverAddress)
 	duration, err := parseDuration(*reportInterval, defaultReportInterval)
 	if err != nil {
@@ -91,6 +109,50 @@ func (c *AgentConfig) configureEnvVars() error {
 			return err
 		}
 		c.rateLimit = rateLimit
+	}
+	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
+		c.cryptoKey = envCryptoKey
+	}
+	return nil
+}
+
+func (c *AgentConfig) readConfig(path string) error {
+	if path == "" {
+		return nil
+	}
+
+	jsonConfig, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Println("Error reading JSON file:", err)
+		return err
+	}
+
+	var config FromFileConfig
+
+	err = json.Unmarshal(jsonConfig, &config)
+
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON file:", err)
+		return err
+	}
+
+	if config.Address != "" {
+		c.serverAddress = config.Address
+	}
+	if config.ReportInterval != "" {
+		c.reportInterval, err = parseDuration(config.ReportInterval, defaultReportInterval)
+		if err != nil {
+			return err
+		}
+	}
+	if config.PollInterval != "" {
+		c.pollInterval, err = parseDuration(config.PollInterval, defaultPollInterval)
+		if err != nil {
+			return err
+		}
+	}
+	if config.CryptoKey != "" {
+		c.cryptoKey = config.CryptoKey
 	}
 	return nil
 }

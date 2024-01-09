@@ -7,12 +7,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/config"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/hash"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/retry"
-	"net/http"
-	"time"
 )
 
 func Send(metrics map[string]models.Metric, cfg config.AgentConfig) {

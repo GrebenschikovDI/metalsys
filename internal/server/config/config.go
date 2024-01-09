@@ -224,6 +224,6 @@ func (c *ServerConfig) HasKey() bool {
 	}
 }
 
-func (c *ServerConfig) RealIp() string {
+func (c *ServerConfig) RealIP() string {
 	return c.trustedSubnet
 }

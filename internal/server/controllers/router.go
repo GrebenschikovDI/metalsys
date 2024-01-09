@@ -16,8 +16,8 @@ func MetricsRouter(ctx *ControllerContext) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(crypto.DecryptMiddleware())
-	if ctx.cfg.RealIp() != "" {
-		r.Use(subnet.TrustedMiddleware(ctx.cfg.RealIp()))
+	if ctx.cfg.RealIP() != "" {
+		r.Use(subnet.TrustedMiddleware(ctx.cfg.RealIP()))
 	}
 	if ctx.cfg.HasKey() {
 		r.Use(hash.ValidateHash(ctx.cfg.GetHashKey()))

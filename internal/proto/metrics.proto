@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package metalsys;
+
+option go_package = ".";
+
+import "google/protobuf/struct.proto";
+
+message Metric {
+  string id = 1;
+  string mtype = 2;
+  google.protobuf.Value delta = 3;
+  google.protobuf.Value value = 4;
+}
+
+message MetricsRequest {
+  repeated Metric metrics = 1;
+}
+
+message MetricResponse {
+  string status = 1;
+}
+
+service MetricsService {
+  rpc UpdateMetrics (MetricsRequest) returns (MetricResponse);
+}

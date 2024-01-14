@@ -17,6 +17,7 @@ type AgentConfig struct {
 	hashKey        string        // Ключ для подписи данных.
 	rateLimit      int           //Количетво одноаременно исходящих запросов на сервер.
 	cryptoKey      string        // Путь до публичного ключа
+	GrpcClient     bool
 }
 
 type FromFileConfig struct {
@@ -34,6 +35,7 @@ const (
 	defaultHashKey        = ""
 	defaultRateLimit      = 0
 	defaultCryptoKey      = ""
+	defaultGRPC           = false
 )
 
 // LoadConfig загружает конфигурацию агента из флагов командной строки и переменных окружения.
@@ -78,6 +80,7 @@ func (c *AgentConfig) configureFlags() error {
 		return err
 	}
 	c.pollInterval = duration
+	c.GrpcClient = defaultGRPC
 	return nil
 }
 

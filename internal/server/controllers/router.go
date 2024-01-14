@@ -24,7 +24,6 @@ func MetricsRouter(ctx *ControllerContext) *chi.Mux {
 	}
 	r.Use(compression.GzipMiddleware)
 	r.Use(middleware.Recoverer)
-	//r.Mount("/debug", middleware.Profiler()) // на другой порт
 	r.Get("/", ctx.getRoot)
 	r.Get("/value/{type}/{name}", ctx.getValue)
 	r.Get("/ping", ctx.ping)

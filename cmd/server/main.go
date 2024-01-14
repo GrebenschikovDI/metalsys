@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -13,10 +15,13 @@ import (
 
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/repository"
+	pb "github.com/GrebenschikovDI/metalsys.git/internal/proto"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/config"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/controllers"
+	"github.com/GrebenschikovDI/metalsys.git/internal/server/grpcserver"
 	"github.com/GrebenschikovDI/metalsys.git/internal/server/storages"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 const dirPath = "sql/migrations"
@@ -79,6 +84,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	go func() {
+		runGrpc(storage)
+	}()
+
 	if err := run(ctx, storage, *cfg); err != nil {
 		panic(err)
 	}
@@ -136,4 +145,19 @@ func runServer(server *http.Server) <-chan error {
 		close(errCh)
 	}()
 	return errCh
+}
+
+func runGrpc(storage repository.Repository) {
+	grpcServer := grpc.NewServer()
+	grpcMetric := grpcserver.CreateGrpcServer(storage)
+	pb.RegisterMetricsServiceServer(grpcServer, grpcMetric)
+	listener, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	fmt.Println("gRPC server is listening on port 50051...")
+	if err := grpcServer.Serve(listener); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }

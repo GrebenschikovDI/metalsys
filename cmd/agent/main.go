@@ -13,6 +13,7 @@ import (
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/config"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/controllers"
 	"github.com/GrebenschikovDI/metalsys.git/internal/client/core"
+	"github.com/GrebenschikovDI/metalsys.git/internal/client/grpcclient"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/logger"
 	"github.com/GrebenschikovDI/metalsys.git/internal/common/models"
 	"go.uber.org/zap"
@@ -45,11 +46,22 @@ func main() {
 	var counter int64
 	var wg sync.WaitGroup
 
+	clientGRPC, err := grpcclient.NewGrpcClient("localhost:50051")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer clientGRPC.Close()
+
 	for i := 0; i <= rateLimit; i++ {
 		wg.Add(1)
 		go func(ctx context.Context) {
 			defer wg.Done()
-			sendMetricsWorker(ctx, storageChan, *cfg)
+			if cfg.GrpcClient {
+				sendMetricsWorkerGRPC(ctx, storageChan, *cfg, clientGRPC)
+			} else {
+				sendMetricsWorker(ctx, storageChan, *cfg)
+			}
 		}(ctx)
 	}
 
@@ -77,4 +89,31 @@ func sendMetricsWorker(ctx context.Context, ch <-chan map[string]models.Metric, 
 		}
 
 	}
+}
+
+func sendMetricsWorkerGRPC(ctx context.Context, ch <-chan map[string]models.Metric, cfg config.AgentConfig, grpcClient *grpcclient.GrpcClient) {
+	for {
+		select {
+		case metrics, ok := <-ch:
+			if !ok {
+				return
+			}
+			err := grpcClient.UpdateMetrics(ctx, convertMetricsSlice(metrics))
+			if err != nil {
+				fmt.Println("Failed to send metrics via gRPC:", err)
+			}
+
+			time.Sleep(cfg.GetReportInterval())
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func convertMetricsSlice(metricsMap map[string]models.Metric) []models.Metric {
+	var metrics []models.Metric
+	for _, metric := range metricsMap {
+		metrics = append(metrics, metric)
+	}
+	return metrics
 }

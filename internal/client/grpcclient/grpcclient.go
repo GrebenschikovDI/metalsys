@@ -8,6 +8,7 @@ import (
 	pb "github.com/GrebenschikovDI/metalsys.git/internal/proto"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type GrpcClient struct {
@@ -16,7 +17,7 @@ type GrpcClient struct {
 }
 
 func NewGrpcClient(serverAddress string) (*GrpcClient, error) {
-	conn, err := grpc.Dial(serverAddress, grpc.WithInsecure())
+	conn, err := grpc.Dial(serverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to server: %v", err)
 		return nil, err
@@ -63,13 +64,21 @@ func ConvertToGRPC(originalMetric models.Metric) *pb.Metric {
 
 	if originalMetric.Delta != nil {
 		delta := *originalMetric.Delta
-		grpcMetric.Delta = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(delta)}}
+		grpcMetric.Delta = &structpb.Value{
+			Kind: &structpb.Value_NumberValue{
+				NumberValue: float64(delta),
+			},
+		}
 
 	}
 
 	if originalMetric.Value != nil {
 		value := *originalMetric.Value
-		grpcMetric.Value = &structpb.Value{Kind: &structpb.Value_NumberValue{value}}
+		grpcMetric.Value = &structpb.Value{
+			Kind: &structpb.Value_NumberValue{
+				NumberValue: value,
+			},
+		}
 	}
 
 	return grpcMetric
